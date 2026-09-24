@@ -236,7 +236,7 @@
 - Engagement DMOs whose `PersonalizationContentId` has a foreign key to Personalization Log `Id` (attribution-eligible): Website, Website Item, Product Browse, Shopping Wishlist (and Item), Shopping Cart Product, Sales Order Product, Media, Lead, Social Message, Promotion Engagement. Per-DMO citations are in measurement-and-attribution.md §1.6; example [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-productbrowseengagementdmo-dmo.html).
 
 ### Platform sObjects
-- `PersonalizationPoint`, `PersonalizationDecision`, `PersonalizationSchema` — API 62.0+; points and decisions support ChangeEvent, Feed, History, OwnerSharingRule, Share. [src](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_PersonalizationPoint.htm) [src](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_PersonalizationDecision.htm)
+- `PersonalizationPoint`, `PersonalizationDecision`, `PersonalizationSchema` — API 62.0+; points, decisions and schemas support ChangeEvent, Feed, History, OwnerSharingRule, Share. [src](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_PersonalizationPoint.htm) [src](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_PersonalizationDecision.htm)
 
 ## 7. Consent
 - Only documented purpose constant: `SalesforceInteractions.ConsentPurpose.Tracking` = `Tracking` ("general behavioral tracking"); statuses `SalesforceInteractions.ConsentStatus.OptIn` = `Opt In`, `...OptOut` = `Opt Out`; consent object needs `provider`, `purpose`, `status`. [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent-data.html)
@@ -286,7 +286,7 @@ SalesforceInteractions.init({
 | Recommenders per org (all data spaces) | 10 (1 objective-based with Personalization Card); increase via Support |
 | Full recommender data refresh | Daily |
 | Recommendation requests per minute per tenant | 60000 |
-| Recommendations returned | 24 |
+| Recommendations returned | 24 maximum (default up to 12; raise with Maximum Number of Recommendations to Return) |
 | Recommender objectives per org | 10 |
 | Include/exclude filter conditions | 10 |
 | Item DG CI values considered (dimensions + measures) | Top 100 |

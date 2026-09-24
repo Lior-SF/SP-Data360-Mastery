@@ -4,6 +4,18 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-09-24
+
+### Fixed
+
+- Fact and consistency corrections from the 2026-09-24 audit:
+  - Data graph cap is 25 standard plus 25 real-time everywhere.
+  - `dataCloud.timeTracking` is a documented `init` option.
+  - Website connector wait time cites both the 15-minute / 1-hour ingest page and the 2–3 minute (300 ms real-time) limits row, and records that they disagree.
+  - The copy-ready sitemap always calls `updateConsents()` first, keys the identity memo to `getAnonymousId()`, and sends `IDNameWeb`.
+  - Recommendation default (12) vs maximum (24), diagnostic `511` vs `512`, calculated-insight measure scope, and Personalization Log `std__*` field API names.
+  - Dynamic Content and content schema used as the current names.
+
 ## [1.4.1] - 2026-09-24
 
 ### Changed
@@ -118,7 +130,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.1...v1.3.0

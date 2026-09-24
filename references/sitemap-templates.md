@@ -52,7 +52,10 @@ const settleOnce = (value) => { if (!settled) { settled = true; resolveConsents(
 const stored = CMP.read();
 if (stored !== null) settleOnce([toConsent(stored)]);
 setTimeout(() => settleOnce([]), CONSENT_WAIT_MS);    // [] = no tracking until updateConsents()
-CMP.subscribe((granted) => (settled ? SI.updateConsents(toConsent(granted)) : settleOnce([toConsent(granted)])));
+CMP.subscribe((granted) => {
+  SI.updateConsents(toConsent(granted));          // every time, first: the Promise applies a microtask later (field-guide-web §1.2)
+  if (!settled) settleOnce([toConsent(granted)]);
+});
 const isOptedIn = () => SI.getConsents().some(({ consent }) =>
   consent.purpose === SI.ConsentPurpose.Tracking && consent.status === SI.ConsentStatus.OptIn);
 
@@ -88,11 +91,17 @@ const sendPageLoadEvents = () => {
     sessionStorage.setItem("sp_order_sent", order.id);
   }
   const userId = readKnownUserId();
-  if (userId && sessionStorage.getItem("sp_party_sent") !== userId) {        // once per user per session (inference)
+  let anonId = "";
+  try { anonId = SI.getAnonymousId() || ""; } catch (e) { anonId = ""; }
+  const partyMemo = anonId + ":" + userId;                    // key to the anonymous ID (field-guide-web §2.4)
+  if (userId && anonId && sessionStorage.getItem("sp_party_sent") !== partyMemo) {
     SI.sendEvent({ user: { attributes: {                      // separate event: never on the first action event
-      eventType: "partyIdentification", IDName: "<ID_NAME>", IDType: "<ID_TYPE>", userId,   // IDName vs IDNameWeb: use your schema's name
+      eventType: "partyIdentification",
+      IDNameWeb: "<ID_NAME>",                                  // SDK translation name; SP mapping DLO column may be IDName — match the uploaded schema
+      IDType: "<ID_TYPE>",
+      userId,
     } } });
-    sessionStorage.setItem("sp_party_sent", userId);
+    sessionStorage.setItem("sp_party_sent", partyMemo);       // write only after Opt In (guard above)
   }
 };
 
@@ -105,6 +114,9 @@ SI.init({
   const { listener, resolvers, CatalogObjectInteractionName, CartInteractionName } = SI;
   // Run page-load events after the first event of this page is sent (the page interaction) (inference):
   document.addEventListener(SI.CustomEvents.OnEventSend, () => onDomReady(sendPageLoadEvents), { once: true });
+  const clearPartyMemo = () => { try { sessionStorage.removeItem("sp_party_sent"); } catch (e) {} };
+  document.addEventListener(SI.CustomEvents.OnResetAnonymousId, clearPartyMemo);
+  document.addEventListener(SI.CustomEvents.OnSetAnonymousId, clearPartyMemo);
 
   SI.initSitemap({
     global: {
@@ -156,9 +168,9 @@ SI.init({
 - Why identity is a separate call: the SDK's automatic anonymous `identity` event is sent only when the first action event after an anonymous-ID change carries no `user.attributes.eventType` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-user-data.html). Putting `partyIdentification` on the page interaction (for example via `onActionEvent`) suppresses it on a new device.
 - Identity hardening (Field-observed, undocumented): the sign-out listener is the simplest case. Sites also need intent-armed network logout signals and a reset that's a no-op when nothing is bound. Append-only data layers need newest-first reads and positional suppression after logout. The `sessionStorage` memos are deliberately session-scoped (one repair per session), but key them to `getAnonymousId()` and write them only after `Opt In`. Patterns: [field-guide-web.md](field-guide-web.md) §2.
 - In-page changes without navigation (quick view, variant switch, filters, tabs): send a catalog event such as `QuickViewCatalogObject` with `sendEvent` from a listener [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-catalog-interaction.html). Don't call `reinit()`.
-- Add to cart: the cart docs send `AddToCart` either from a sitemap listener or "from within your site's custom 'addToCart' function" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-cart-interaction.html). Listener handler arguments aren't documented, so read the line from the site's data layer; outside the sitemap use `window.getSalesforceInteractions()`.
+- Add to cart: the cart docs send `AddToCart` either from a sitemap listener or "from within your site's custom 'addToCart' function" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-cart-interaction.html). Sitemap and cart examples pass a callback argument `(event)`; the shape of that object isn't documented, so read the line from the site's data layer; outside the sitemap use `window.getSalesforceInteractions()`.
 - Timing: whether `initSitemap` waits for DOM ready before running resolvers is undocumented (UNVERIFIED). Prefer values available in `<head>` (a data layer on `window` set before the tag, `fromMeta`, `fromJsonLd`), or test on slow pages.
-- First page before a first-time consent decision: if the decision arrives after the page interaction, that page view isn't sent (events are dropped, not queued; Field-observed, undocumented). On a multi-page site the next full load tracks normally. Replaying that one view is optional; see [troubleshooting.md](troubleshooting.md) (consent symptoms).
+- First page before a first-time consent decision: if the decision arrives after the page interaction, that page view isn't sent. The SDK doesn't store or transmit before `Opt In`, so those events are dropped, not queued [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html). `init()` resolving while the consents Promise is still pending is Field-observed, undocumented. On a multi-page site the next full load tracks normally. Replaying that one view is optional; see [troubleshooting.md](troubleshooting.md) (consent symptoms).
 - `OnEventSend` "is dispatched after an event has been successfully processed, and a request is made" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html); using its first occurrence as the "page interaction sent" signal is inference. If consent arrives mid-page, the page-load events run after the next sent event; the `isOptedIn()` guard blocks them before opt-in.
 
 ## 3. Consent manager adapter (CMP-agnostic)

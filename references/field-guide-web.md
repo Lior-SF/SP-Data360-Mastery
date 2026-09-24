@@ -189,7 +189,7 @@ If the sitemap carries consent, identity or SPA logic, unit-test it. Live UAT al
 ## Gaps and uncertainties
 
 - Every CMP behavior in §1.1 (cookie timing, formats, empty first events, reloads, script blocking) is vendor-specific; confirm it per vendor and per vendor release.
-- SDK behaviors in this guide are observed, not documented: `init()` resolving while consent is pending, drop-not-queue before `Opt In`, restored consent before the CMP publishes, no second Consent Log row for an unchanged verdict, `locale` as a function, and `data-sf-personalization-id`.
+- SDK behaviors in this guide are observed, not documented: `init()` resolving while consent is pending, restored consent before the CMP publishes, no second Consent Log row for an unchanged verdict, `locale` as a function, and `data-sf-personalization-id`. Events before `Opt In` are dropped because the SDK doesn't store or transmit until then (documented).
 - Undocumented outright: whether an init-time `Opt Out` without a prior opt-in writes a Consent Log row, whether decisions are fetched after opt-out, and whether a route's decision after `reinit()` sees an identity bound just before it.
 - Targeting-rule operators (`contains` on text) are unpublished; confirm them in the decision wizard.
 - Consent categories stored as a profile attribute lag the CMP by an undocumented delay and need privacy sign-off.

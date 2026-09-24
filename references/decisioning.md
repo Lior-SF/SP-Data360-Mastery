@@ -19,7 +19,7 @@
 |---|---|---|
 | Profile at request time | SP calls the Data 360 profile API for the real-time profile | Lookup omitted; SP evaluates the profile JSON sent with the request |
 | Freshness | "most up-to-date understanding of individuals, including any in-session behavior" | Whatever the caller sends; the graph refreshes on a schedule (default `Daily`) |
-| Profile missing | `512` → processed as anonymous; `511` → anonymous or HTTP `503`, depending on configuration | "blank, anonymous profile": profile-based targeting rules and profile-based recommender filters evaluate to false |
+| Profile missing | `512 QUERY_SERVICE_MISSING_PROFILE` → processed as anonymous. `511 QUERY_SERVICE_ERROR` is a failed Query Service call, not a missing profile; that path may proceed as anonymous or return HTTP `503` | "blank, anonymous profile": profile-based targeting rules and profile-based recommender filters evaluate to false |
 | Web Personalization Manager (WPM) | Points selectable | Points not listed |
 | Documented use | Latency-sensitive web and mobile; "work across all personalization scenarios" | Outbound messaging, batch personalization |
 
@@ -69,13 +69,15 @@ Sources: [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personal
 | Graph size | — | 200 KB (performance degrades above) |
 | Objects per graph (primary + related + CIs) | 25 | 25 |
 | Fields per DMO / total fields + measures | 50 / 200 | 50 / 200 |
-| Measures per calculated insight | 5 | 5 |
+| Measures per calculated insight included in a data graph | 5 | 5 |
 | Engagement events | 100 | not stated |
 | Max age of engagement data | 30 days (720 h) | 30 days (720 h) |
 | Nesting below the primary DMO | 5 levels | 5 levels |
 | Records per DMO | 1,000 (sort-and-limit default 100) | 1,000 |
 
 Sources: [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_changelog_usage_and_access.htm&release=264.0.0&type=5)
+
+- The 5-measure cap is per calculated insight **included in a data graph**. A calculated insight itself may have up to 50 measures [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 
 - Real-time graphs support only 1:1 and 1:N; joins must use the parent DMO's primary key; N:1 is blocked for new graphs; existing N:1 graphs keep running but parent changes aren't immediately reflected. [src](https://help.salesforce.com/s/articleView?id=data.c360_a_create_a_data_graph.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_graph_data_structures.htm&release=264.0.0&type=5)
 - Real-time consumption settings: record caching keeps recently active known visitors in the real-time layer so the first page personalizes; disabling it can delay first-page personalization but stops consuming sub-second real-time entitlements. Session length: 30 min is the industry standard, 48 h the maximum; traffic spikes can end sessions early. [src](https://help.salesforce.com/s/articleView?id=data.c360_a_record_caching_in_rt_data_graphs.htm&release=264.0.0&type=5)
@@ -180,7 +182,7 @@ Sources: [src](https://help.salesforce.com/s/articleView?id=mktg.mc_persnl_perso
 - Point IDs start with `9pp`: the SP sitemap guide's sample response shows an 18-character `personalizationPointId` beginning `9pp`. [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/request-personalization-through-sitemap.html) DMO `Id` fields are documented as max 15 characters [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationpointdmo-dmo.html), so normalize 15/18-character IDs before joining (inference).
 - (Field-observed, undocumented) Decision record IDs start with `9pb`.
 - (Field-observed, undocumented) The record ID in the setup-UI URL (prefix `0Wl`) was not the point ID stored in the Personalization Log DMO; take the real ID from the log or from the API's `personalizationPointId`.
-- Personalization Log DMO `std__PersonalizationLogDmo__dlm`: `PersonalizationPointId`, `RootPersonalizationPointId`, `PersonalizationDecisionId`, `PersonalizerId`, `PersonalizationId`, `PersonalizationRequestId`, `PersonalizationContentId`, `ContentIndexNumber` (rank), `PersnlRequestChannel` (e.g., email, web), `ContextOnly` (true = profile and history not used), `StatusCode` (HTTP-style values such as 200, 500, 501); stage timings `AgmtStgElpsMilliseconds` (Augmenting), `QualStageElpsMilliseconds` (Qualifying), `PerslStgElpsMilliseconds` (Personalizing), and `ResponseTimeMillisecond` (all stages + overhead). [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationlogdmo-dmo.html)
+- Personalization Log DMO `std__PersonalizationLogDmo__dlm`: `PersonalizationPointId`, `RootPersonalizationPointId`, `PersonalizationDecisionId`, `PersonalizerId`, `PersonalizationId`, `PersonalizationRequestId`, `PersonalizationContentId`, `ContentIndexNumber` (rank), `PersnlRequestChannel` (e.g., email, web), `ContextOnly` (true = profile and history not used), `StatusCode` (HTTP-style values such as 200, 500, 501); stage timings `std__AgmtStgElpsMilliseconds__c` (Augmenting), `std__QualStageElpsMilliseconds__c` (Qualifying), `std__PerslStgElpsMilliseconds__c` (Personalizing), and `std__ResponseTimeMillisecond__c` (all stages + overhead). The mapping-guide headings omit the `std__` prefix and `__c` suffix; the SP developer log guide uses a third set (`AugmentingStageTimeMillis__c`, …). [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationlogdmo-dmo.html) [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalization-log-dmo.html)
 
 ### 5.6 Diagnostic codes (resemble, but aren't, HTTP codes)
 
@@ -214,7 +216,7 @@ Source: [src](https://developer.salesforce.com/docs/marketing/einstein-personali
 - Campaign wizard decisions are enabled by default and can be disabled and re-enabled; with no targeting rules, content goes to all individuals. [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_campaign_create.htm&release=264.0.0&type=5)
 
 ### 6.3 Targeting rules
-- Match modes in the decision wizard: `Always (No Rules)` (default), `All Rules Are Met`, `Any Rule Is Met` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_decision_add.htm&release=264.0.0&type=5); the targeting-rule article labels them `Always (No Conditions)`, `All Conditions Are Met`, `Any Condition Is Met`. No nested AND/OR groups are documented. [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_targeting_rules_create.htm&release=264.0.0&type=5)
+- Match modes in the decision wizard: `Always (No Rules)` (default), `All Rules Are Met`, `Any Rule Is Met` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_decision_add.htm&release=264.0.0&type=5); the targeting-rule article labels them `Always (No Conditions)`, `All Conditions Are Met`, `Any Condition Is Met`. No nested AND/OR groups are documented on the decision wizard. Experiments document `Add Groups` ([wpm-experiences-campaigns.md](wpm-experiences-campaigns.md) §9). [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_targeting_rules_create.htm&release=264.0.0&type=5)
 - Up to 50 conditions per decision (or experiment); permissions `Create and Edit Personalization Points or Campaigns` + `Create and Edit Personalization Decisions`. [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_targeting_rules_create.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_basics_limits.htm&release=264.0.0&type=5)
 
 | Resource | Use |

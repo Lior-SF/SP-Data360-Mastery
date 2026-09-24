@@ -14,7 +14,7 @@ This skill is only useful if agents can trust it. Every change must keep it accu
    - internal conversations or named employees
    - roadmap or forward-looking statements
 
-   Use placeholders such as `<POINT_ID>`, `<POINT_API_NAME>`, `<TENANT_ENDPOINT>`, `<TARGET_SELECTOR>`, `<TEMPLATE_API_NAME>` and `<SIGNAL_METRIC_NAME>`.
+   Use placeholders such as `<POINT_ID>`, `<POINT_API_NAME>`, `<TENANT_ENDPOINT>`, `<TARGET_SELECTOR>`, `<TEMPLATE_API_NAME>`, `<SIGNAL_METRIC_NAME>`, `<REGISTRABLE_DOMAIN>`, `<CMP_NAME>`, `<PAGE_TYPE>`, `<DATA_SPACE>`, `<ID_NAME>` and `<ID_TYPE>`.
 
 ## Which sources count
 
