@@ -68,6 +68,7 @@ Decide which product the prompt is about before answering.
 | "Is this SP or MCP?", migration, terminology mapping | [references/sp-vs-mcp.md](references/sp-vs-mcp.md) |
 | Anything broken: not rendering, duplicated, zero rows, save errors | [references/troubleshooting.md](references/troubleshooting.md) |
 | SQL for views, clicks, CTR, unique or unified individuals, point/decision breakdowns | [references/sql-cookbook.md](references/sql-cookbook.md) |
+| Field-verified gotchas, tricks and patterns not in the official docs: consent wiring, browser identity capture, sitemap engineering, SPA hardening, WPM anchors, offline sitemap tests (web); identity resolution design, connector mapping traps, child-record targeting, SQL diagnosis, credits, rollout, privacy sign-offs (data) | [references/field-guide-web.md](references/field-guide-web.md), [references/field-guide-data.md](references/field-guide-data.md) |
 
 ## Mental model
 
@@ -161,6 +162,8 @@ Each fact is detailed and cited in the linked reference.
 ### WPM, campaigns, experiments — [wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md)
 
 - **Opening WPM:** append `?sf_personalization_wpm` to the site URL; for sandboxes also add `&sf_personalization_wpm_env=prod_sandbox`. Third-party cookies must be allowed.
+  - If the string does nothing or WPM errors, often because a redirect or router dropped it, launch WPM from the loaded page with the documented bookmarklet `javascript:SalesforceInteractions.Personalization.launchWpm()`.
+  - Chrome steps are in the WPM reference, and diagnosis is in [troubleshooting.md](references/troubleshooting.md).
 - **Display methods:** `Replace a Content Zone`, `Use Content Zone Handler`, `Replace an Element`, `Add Before an Element`, `Add After an Element` and `Add an Overlay`.
 - **Selectors:** element targets are CSS selectors. An element that has only an `id` must be targeted as `#id`.
 - **Publishing:** nothing goes live until `State` is `Enabled` and you `Save`. Previewing a specific decision ignores its targeting rules.
@@ -189,7 +192,7 @@ Apply the guidance that matches the customer's channels and site type, and expla
 - **Identity:** `partyIdentification` `IDName`/`IDType` must match the identity resolution match rule exactly.
   - Never send placeholder values ("NA", "null") as identifiers.
   - Call `resetAnonymousId()` before binding a different signed-in user on the same device.
-  - In real-time matching, every criterion runs as `Exact` except phone and email, which run as `Exact Normalized`, whatever the scheduled match method. Fuzzy matching applies only in scheduled runs. Case-sensitive matching is an opt-in advanced criteria setting.
+  - In real-time matching, every criterion runs as `Exact` except phone and email, which run as `Exact Normalized`, whatever the scheduled match method. Fuzzy matching applies only in scheduled runs. Case-sensitive matching is an opt-in advanced criteria setting; without it, `AbC1` and `abc1` match.
   - **Shared devices:** if a browser stays bound to a known customer after sign-out, real-time decisions keep resolving to that customer's unified profile. The next person on the device then sees that customer's personal content. Either rotate the anonymous ID on logout or suppress personal content for signed-out sessions.
 - **Measurement:** design it per use case before building.
   - One placement's performance: a two-stage view → click attribution funnel, with signals filtered through the Personalization Log by point. Use the engagement DMO and action values of the placement's channel, for example `personalization-view` / `personalization-click` on Website Engagement, or `catalog-object-view-start` / `catalog-object-click` on Product Browse Engagement.
@@ -199,7 +202,7 @@ Apply the guidance that matches the customer's channels and site type, and expla
 
 ### Web: placement and templates
 
-- **Hooks:** target stable, site-owned hooks: a sitemap content zone with a `selector`, or an `id` or `data-*` attribute targeted in WPM (an element with only an `id` is `#id`). Avoid generated class names and anchors that exist only in some user states.
+- **Hooks:** target stable, site-owned hooks: a sitemap content zone with a `selector`, or an `id` or `data-*` attribute targeted in WPM (an element with only an `id` is `#id`). Avoid generated class names, selector chains through parent component names, and anchors that exist only in some user states (that segment silently loses renders and views).
 - **One path per slot:** either a content zone with `Replace a Content Zone`, or WPM element targeting with no zone declared for that element. Never both.
 - **Flicker defense:** SP flicker defense hides the elements that enabled experiences target. MCP's hiding of content-zone selectors doesn't apply.
 - **Templates:**
@@ -218,6 +221,20 @@ Apply the guidance that matches the customer's channels and site type, and expla
 | Experience Cloud (Aura / enhanced LWR) | Aura: Web SDK pasted in **Edit Header Markup**, with Relaxed CSP and the SDK URL in Trusted URLs. Enhanced LWR: the native Data Cloud integration, with consent sent through `set-consent` on every page load. SP points reach authenticated users through Agentforce Orchestrator. WPM on Experience Cloud is undocumented. See the Experience Cloud section of [implementation-playbook.md](references/implementation-playbook.md). |
 | Headless site or no website | No sitemap or WPM. Use the Decisioning API server-side or the Engagement Mobile SDK in apps. With no profile (anonymous, no JavaScript), send `executionFlags: ["ContextOnly"]` and decide on URL/UTM, anchor and custom context. Send views and clicks back through the Data 360 Ingestion API. |
 | Outbound (email, files, other systems) | Batch personalization decisions for segments, activated from the output DMO. |
+
+## Field-verified lessons
+
+Seen in real implementations and absent from the docs, so re-test after SDK upgrades and releases. Full lists: [field-guide-web.md](references/field-guide-web.md) and [field-guide-data.md](references/field-guide-data.md).
+
+- **Consent adapter:** read the CMP's live state with its persisted cookie as fallback, and match categories as exact tokens. Treat an empty or unparseable answer as "not decided yet", and size the consent ceiling from measured cold loads (web §1.1).
+- **Consent handler:** call `updateConsents()` synchronously first, every time. Decide the first-view replay only from `getConsents()`, and write "sent" memos only after `Opt In` (web §1.2).
+- **Append-only data layers:** read the newest entry, and suppress re-binding positionally after logout, never with a timer. Persist the bound user in `localStorage` to detect user switches (web §2.2–§2.3).
+- **After `resetAnonymousId()`:** the new device is a new Individual, so re-send the profile attributes decisions depend on, and key memos to `getAnonymousId()` (web §2.4).
+- **Page types classify pages; decisions target people:** never split page types by consent or audience, and match paths on segment boundaries (web §3.1).
+- **Sitemap robustness:** use top-level `var` or an IIFE (re-injection), swap listeners on re-injection, guard `Personalization.Config.initialize`, and end the `init()` chain with `.catch` (web §3.3–§3.4).
+- **Identity resolution:** keep "Match to" empty on party-identifier criteria, send `isAnonymous` on every `identity` event, and batch changes that trigger billable full reruns (data §1).
+- **Connector mapping:** after **Update Schema**, run **Sync Schema** per stream. Under Partial refresh, omit unknown values instead of sending `""` (data §2).
+- **Child-record targeting:** "has at least one matching row" is `Related Attributes` `Count` `Is Greater Than` `0`, with every row condition in its WHERE (data §3).
 
 ## Live verification and source rules (SP vs MCP)
 

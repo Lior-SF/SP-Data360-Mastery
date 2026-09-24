@@ -39,6 +39,7 @@ Ask these in the first workshops. Each answer changes a design decision later in
 - Which consent management platform (CMP), which categories, and which event or API exposes the visitor's choice (synchronous read, async callback, or both)?
 - Web: the SDK stores and sends nothing until it receives `Opt In`, and `consents` is required in `init` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html). The only documented purpose is `Tracking` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent-data.html).
 - Which CMP category legally covers behavioral personalization? Mapping `Opt In` to an always-on "strictly necessary" category opts everyone in; get privacy sign-off on the mapping.
+- Does the CMP persist its decision in a cookie, auto-block scripts by domain, reload the page on save, or expose only a single-owner callback? Each changes the adapter, and domain blocking can remove the SDK itself (Field-observed; [field-guide-web.md](field-guide-web.md) §1.1).
 - Mobile: the Engagement Mobile SDK defaults to `pending` and transmits only after `optIn` [src](https://developer.salesforce.com/docs/data/data-cloud-engagement-mobile-sdk/guide/c360a-api-engagement-mobile-sdk-consent-management-v3.html); where is the in-app consent prompt?
 - Server-side, Flow and batch: whether these decisions honor Data 360 consent is undocumented; decide who filters non-consented people (for example in the batch segment) (inference).
 
@@ -46,7 +47,8 @@ Ask these in the first workshops. Each answer changes a design decision later in
 - Share of anonymous vs signed-in traffic; login mechanism; is a stable identifier available in the browser or app after login?
 - Which identifier (CRM ID, customer or member number, account-holder ID, other) goes into `partyIdentification`, and does the identity resolution ruleset match it? SP's real-time rule matches Party Identification `Identification Number` with `Exact` and `Match on Blank` off [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_real_time_identity_resolution_for_einstein_personalization.htm&release=264.0.0&type=5).
 - Could placeholder values reach identifier fields? Default values (the doc's example is `000-0000`) are a named cause of oversized unified profiles, identity resolution can't combine more than 50,000 records into one profile, and a literal `"null"` Identification Number is skipped during matching [src](https://help.salesforce.com/s/articleView?id=data.c360_a_resolution_troubleshooting_ir_errors.htm&release=264.0.0&type=5).
-- Shared or public devices (kiosks, family tablets, agent desktops)? What happens on logout?
+- Shared or public devices (kiosks, family tablets, agent desktops)? What happens on logout? Decide the unbind policy (rotate on explicit sign-out only, or also when a browser arrives signed out) with privacy; each choice has credit and privacy costs ([field-guide-data.md](field-guide-data.md) §7).
+- Before building: probe every candidate sign-in and sign-out signal in four states (signed out, signed in, after in-place sign-out, after a hard reload), compare one real browser identifier with the CRM value byte for byte, and get the identity push documented as a contract ([field-guide-web.md](field-guide-web.md) §2.1).
 - Must web and app identities converge on one unified profile? B2B: is the decision subject a person (contact, lead) or an account?
 
 ### Data already in Data 360
@@ -70,6 +72,7 @@ Ask these in the first workshops. Each answer changes a design decision later in
 ### Privacy and legal constraints
 - Legal basis per region; regulated content categories (health, finance, minors) that must not be targeted.
 - Data subject rights: submit every request through the Consent API; with identity resolution, submit for source individual profiles [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_subject_rights.htm&release=264.0.0&type=5). Deletion removes the Individual record, DMOs directly related through the Individual ID, their mapped DLOs and related calculated insights, not unrelated DMOs; it typically runs within hours, is reprocessed after 30, 60 and 90 days, and must also be submitted in every connected system [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_deletion_request.htm&release=264.0.0&type=5). Check whether custom engagement DMOs relate to the Individual.
+- Identifiers kept in browser storage (site keys that survive sign-out, the sitemap's own bound-identifier key) are readable by any script on the origin; prefer opaque tokens and list them in the privacy review (Field-observed; [field-guide-data.md](field-guide-data.md) §7).
 - PII in web events and personalized URLs; data residency; retention (batch output is kept 30 days [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_batch_create_batch_persnl.htm&release=264.0.0&type=5)).
 - AI disclosure: objective-based recommenders don't use demographic data or data purchased from third parties [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_recommender_machine_learning_for_objective_based_recommenders.htm&release=264.0.0&type=5).
 
@@ -339,6 +342,7 @@ Skip items whose tag doesn't apply to the implementation.
 - [ ] [Web] `consents` comes from the CMP as a promise that always settles; no hard-coded `OptIn` copied from the example sitemap [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html).
 - [ ] [Web] Declining visitors send no events: `SalesforceInteractions.getConsents()` shows `Opt Out` and the Network tab stays silent [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html).
 - [ ] [Web] First page view after a late opt-in is replayed once, only if it was suppressed (Field-observed, undocumented pattern; see [troubleshooting.md](troubleshooting.md)).
+- [ ] [Web] Opt-out forced from the console with `updateConsents({ ..., status: 'Opt Out' })` fires `OnConsentRevoke` / `OnShutDown` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html) and leaves the network quiet ([field-guide-web.md](field-guide-web.md) §1.2).
 - [ ] [Mobile] Personalization stays off until the user opts in; the app re-requests content after an opt-in [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalize-mobile-experiences-lowcode-android.html).
 - [ ] [All] Privacy has signed off the consent mapping, regulated-content exclusions and the data subject request process [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_deletion_request.htm&release=264.0.0&type=5).
 
@@ -347,6 +351,7 @@ Skip items whose tag doesn't apply to the implementation.
 - [ ] [All] No placeholder identifiers: sql-cookbook Q10 shows no shared Identification Numbers or giant unified profiles.
 - [ ] [Web] Shared devices: `resetAnonymousId()` runs when the signed-in person changes or on logout, or personal content is suppressed for signed-out sessions [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
 - [ ] [Web, multiple subdomains] `cookieDomain` set to the parent domain on every subdomain.
+- [ ] [All] Identity changes batched into one full rerun (`Run jobs automatically` paused while editing); the web-to-CRM acceptance query and its negative control pass ([field-guide-data.md](field-guide-data.md) §1.3, §4).
 
 ### Preview and QA
 - [ ] [Web] Every decision previewed in WPM, then `Current User Decision` and an Individual ID per target segment [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_preview_the_experience.htm&release=264.0.0&type=5). [Mobile] QR preview per experience.
@@ -355,6 +360,9 @@ Skip items whose tag doesn't apply to the implementation.
 - [ ] [All] Recommenders show `Last Successful Refresh`; fallbacks attached.
 - [ ] [Web] `Show All Personalization Experiences` confirms one placement path per slot [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5).
 - [ ] [SPA] One decision request per navigation. [Web] Back/forward restore doesn't duplicate content.
+- [ ] [Web] Placement tested with one user in each state that changes the DOM (signed in or out, tiers); every slot has a stable wrapper present for everyone ([field-guide-web.md](field-guide-web.md) §5).
+- [ ] [Web] UAT-only sitemap lines removed: `setLoggingLevel('debug')`, build banner, custom traces; logging defaults to `none` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-debugging.html).
+- [ ] [Web, sitemaps with consent, identity or SPA logic] Offline scenario and mutation tests pass, and were changed together with the sitemap (Field-observed practice; [field-guide-web.md](field-guide-web.md) §7).
 
 ### Flicker and performance
 - [ ] [Web] SDK loaded in `<head>`; flicker defense tested on throttled networks with the default `2000` ms and `renderPersonalizationAfterTimeoutElapsed: false` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/configure-flicker-defense.html).
@@ -365,6 +373,7 @@ Skip items whose tag doesn't apply to the implementation.
 - [ ] Counts within limits: 25 decisions per point, 50 conditions, 10 recommenders, 20 attribution models, 20 active batch jobs [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_basics_limits.htm&release=264.0.0&type=5); 25 data graphs per org [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 - [ ] Monthly decisions forecast against the credit allowance; consumption tracked in Digital Wallet [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_basics_billable_usage_types.htm&release=264.0.0&type=5).
 - [ ] [Server] Clients retry HTTP 429 with backoff and jitter.
+- [ ] [Web] No proof-of-concept or test experiences left `Enabled` on broad page types or wildcard URLs; each matching view requests a billable decision (Field-observed; [field-guide-data.md](field-guide-data.md) §5).
 
 ### Monitoring
 - [ ] Both daily insights scheduled; Pipeline Intelligence installed if CRM Analytics is licensed [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_install_pers_pipeline_dashboard.htm&release=264.0.0&type=5).

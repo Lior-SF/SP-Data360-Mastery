@@ -20,6 +20,8 @@ Every platform fact comes from current official Salesforce documentation and is 
 | [references/sp-vs-mcp.md](references/sp-vs-mcp.md) | How to tell Salesforce Personalization and MCP apart, and what never to say about SP |
 | [references/troubleshooting.md](references/troubleshooting.md) | Symptom → cause → confirm → fix playbook |
 | [references/sql-cookbook.md](references/sql-cookbook.md) | Data 360 SQL for personalization reporting |
+| [references/field-guide-web.md](references/field-guide-web.md) | Field-verified web lessons the docs don't state: consent wiring, browser identity capture, sitemap engineering, SPA hardening, WPM anchors, offline sitemap testing |
+| [references/field-guide-data.md](references/field-guide-data.md) | Field-verified data lessons the docs don't state: identity resolution design, connector mapping traps, child-record targeting, SQL diagnosis, credits, rollout, privacy sign-offs |
 
 ## Install
 

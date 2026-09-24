@@ -25,8 +25,10 @@
 Documented APIs only; comments marked (inference) are design choices. Replace every `<PLACEHOLDER>`. No polling and no `reinit()`. Remove page types and events the site doesn't have.
 
 ```js
+/* Re-injection (Sitemap Builder Inject, console paste) re-runs this file: wrap it in an IIFE or use
+   top-level var instead of const/let, or the second run throws (field-guide-web.md §3.4). */
 /* ===== 1) Personalization module FIRST (must precede init) ===== */
-SalesforceInteractions.Personalization.Config.initialize({
+SalesforceInteractions.Personalization.Config.initialize({   // guard with if (SalesforceInteractions.Personalization) if a build may lack the module
   customFlickerDefenseConfig: { redisplayTimeoutMilliseconds: 2000, renderPersonalizationAfterTimeoutElapsed: false }, // documented defaults
 });
 
@@ -38,7 +40,7 @@ const CMP = {
   read: () => null,                       // PLACEHOLDER: return true | false | null (no decision yet) for the ONE approved category/purpose
   subscribe: (callback) => {},            // PLACEHOLDER: call callback(true | false) on the first decision and on every later change
 };
-const CONSENT_WAIT_MS = 5000;             // <CONSENT_WAIT_MS>: ceiling so the consents Promise always settles (inference)
+const CONSENT_WAIT_MS = 5000;             // <CONSENT_WAIT_MS>: ceiling so the consents Promise always settles (inference); size it well above measured cold-load CMP arrival
 const toConsent = (granted) => ({
   provider: CMP.provider,
   purpose: SI.ConsentPurpose.Tracking,
@@ -72,7 +74,7 @@ const readItemId = () => /* id of the item on this detail page */ null;
 const readCartLines = () => /* [{ catalogObjectType: "<ITEM_TYPE>", catalogObjectId, quantity, price, currency }] */ [];
 const readAddedLine = () => /* the line just added: { catalogObjectType, catalogObjectId, quantity, price?, currency? } */ null;
 const readOrder = () => /* { id, totalValue, currency: "<CURRENCY>", lineItems: [...] } on the confirmation page, else null */ null;
-const readKnownUserId = () => /* server-rendered signed-in ID, else null; never "NA", "null", "0" */ null;
+const readKnownUserId = () => /* signed-in ID (newest data-layer entry carrying it), trimmed, else null; never "NA", "null", "0" */ null;
 
 /* ===== 5) Page-load commerce and identity events: separate calls, after the page interaction (inference) ===== */
 const sendPageLoadEvents = () => {
@@ -106,7 +108,7 @@ SI.init({
 
   SI.initSitemap({
     global: {
-      locale: "<LOCALE>",                                     // e.g. "en_US"
+      locale: "<LOCALE>",                                     // e.g. "en_US": from the data layer or <html lang>, normalized to ll_CC
       listeners: [
         listener("click", "<ADD_TO_CART_SELECTOR>", () => {   // or call sendEvent from the site's own add-to-cart code
           const lineItem = readAddedLine();
@@ -142,7 +144,7 @@ SI.init({
         interaction: { name: "Home View", eventType: "userEngagement" } },
     ],
   });
-});
+}).catch((err) => console.error("SP sitemap: initialization failed", err));   // a throw in .then() is otherwise silent
 ```
 
 - API basis: module before `init` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/initialize-einstein-personalization-module.html); `init` → `initSitemap` in `.then()`, `consents` as `Consent[]` or `Promise<Consent[]>`, `[]` = no tracking until `updateConsents()`, `cookieDomain` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html); `personalization.dataspace` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/request-personalization-through-sitemap.html); sitemap keys, resolvers, `listener`, `onActionEvent` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-sitemap.html); `contextualAttributes` in `global` or `pageTypes`, value = string, function or Promise, `anchorType` = "The Data Model Object name associated with the anchor item" [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-dynamic-context-variables.html); `CustomEvents.OnEventSend` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html); `resetAnonymousId()` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
@@ -152,6 +154,7 @@ SI.init({
   - `<ID_NAME>` / `<ID_TYPE>` must match the real-time identity resolution match rule [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_real_time_identity_resolution_for_einstein_personalization.htm&release=264.0.0&type=5).
 - Placement: the starter declares no content zones. Ask the site team for empty, stable `#id` placeholders and target them in WPM with `Replace an Element`. To use zones instead, add `contentZones: [{ name, selector }]` to a page type and use `Replace a Content Zone` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-content-zones.html). Never both for the same slot.
 - Why identity is a separate call: the SDK's automatic anonymous `identity` event is sent only when the first action event after an anonymous-ID change carries no `user.attributes.eventType` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-user-data.html). Putting `partyIdentification` on the page interaction (for example via `onActionEvent`) suppresses it on a new device.
+- Identity hardening (Field-observed, undocumented): the sign-out listener is the simplest case. Sites also need intent-armed network logout signals and a reset that's a no-op when nothing is bound. Append-only data layers need newest-first reads and positional suppression after logout. The `sessionStorage` memos are deliberately session-scoped (one repair per session), but key them to `getAnonymousId()` and write them only after `Opt In`. Patterns: [field-guide-web.md](field-guide-web.md) §2.
 - In-page changes without navigation (quick view, variant switch, filters, tabs): send a catalog event such as `QuickViewCatalogObject` with `sendEvent` from a listener [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-catalog-interaction.html). Don't call `reinit()`.
 - Add to cart: the cart docs send `AddToCart` either from a sitemap listener or "from within your site's custom 'addToCart' function" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-cart-interaction.html). Listener handler arguments aren't documented, so read the line from the site's data layer; outside the sitemap use `window.getSalesforceInteractions()`.
 - Timing: whether `initSitemap` waits for DOM ready before running resolvers is undocumented (UNVERIFIED). Prefer values available in `<head>` (a data layer on `window` set before the tag, `fromMeta`, `fromJsonLd`), or test on slow pages.
@@ -168,7 +171,15 @@ SI.init({
 - Third-party (verify in the CMP vendor's own docs): most CMPs expose (1) a read of the stored decision per category or purpose, (2) a callback or DOM event on the first decision and on later changes, and (3) sometimes a "loaded / ready" signal; some implement the IAB TCF API. The adapter's `read()` and `subscribe()` are placeholders for exactly those calls; keep all vendor code inside them.
 - Rules (inference):
   - Map exactly **one** privacy-approved CMP category or purpose to SP `Tracking`. Never map an always-granted category (for example "strictly necessary"): it opts in everyone. Compliance stays with the site owner [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html).
-  - Always let the Promise settle: on the stored decision, on the first decision, or with `[]` after a ceiling. A Promise resolving `[]` isn't a documented shape; test it, or resolve with an explicit `Opt Out` after privacy sign-off ([web-sdk-and-sitemap.md](web-sdk-and-sitemap.md) §3).
+  - Always let the Promise settle: on the stored decision, on the first decision, or with `[]` after a ceiling. A Promise resolving `[]` isn't a documented shape; test it, or resolve with an explicit `Opt Out` after privacy sign-off. Whether that init-time `Opt Out` writes a Consent Log row is undocumented ([web-sdk-and-sitemap.md](web-sdk-and-sitemap.md) §3).
+  - Field hardening (Field-observed, undocumented):
+    - Implement `read()` from the CMP's live state, with its persisted cookie as fallback, so returning visitors settle at once.
+    - Parse cookies anchored on the name, and match categories as exact tokens.
+    - Treat empty or unparseable answers as `null`.
+    - Keep `subscribe()` attached (no `{ once: true }`), and call `updateConsents()` synchronously at the top of the change handler.
+    - Probe whether the CMP reloads the page on save.
+
+    Details: [field-guide-web.md](field-guide-web.md) §1.
   - After settling, route every change through `updateConsents()`; on `Opt Out` the SDK "immediately stops emitting events" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-salesforce-interactions-web-sdk.html).
 
 ## 4. Optional SPA add-on (client-side routing only)
@@ -188,7 +199,7 @@ Add this **only** if routes change without a full page load (SPA, or an SSR fram
 ```
 
 - Basis: polling and `reinit()` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html); `OnInit` is the documented hook for SPAs that "reinitialize without a page load event" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html).
-- Hardening (Field-observed, undocumented): prefer the router's "navigation complete" hook to polling; debounce until the new route's DOM settles, with a hard ceiling; one `reinit()` per navigation; verify exactly one `OnInit` and one `/personalization/decisions` request per route change.
+- Hardening (Field-observed, undocumented): prefer the router's "navigation complete" hook to polling; debounce until the new route's DOM settles, with a hard ceiling that the MutationObserver never restarts; one `reinit()` per navigation; verify exactly one `OnInit` and one `/personalization/decisions` request per route change. On re-injection, swap listeners and intervals (remove the previous one, then add) and route one-time patches through a `window` pointer to the current closure ([field-guide-web.md](field-guide-web.md) §3.4, §4).
 - Scripts that change the URL without navigating (`history.replaceState` for filters or anchors) also trigger the poll and re-send the page interaction; ignore those URL changes or compare only the path (Field-observed, undocumented).
 - Render framework-owned slots with Content Zone Handlers ([web-sdk-and-sitemap.md](web-sdk-and-sitemap.md) §9), not WPM element replacement.
 

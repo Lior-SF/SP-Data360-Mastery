@@ -438,6 +438,7 @@ ORDER BY views DESC
 | Exact numbers, validation, join debugging | Query Editor (8.7) | ad-hoc grid | not scheduled |
 | Pipeline health (requests, points, uniques/day) | Pipeline Intelligence or pipeline SQL | CRM Analytics dashboard | needs CRM Analytics + 2 scheduled CIs; no view/click data |
 | Rich BI on attribution DMOs | Tableau via Salesforce Data Cloud Connector | workbooks | documented for predefined attribution DMOs |
+| Row grain: who saw which decision when, per unified person | Batch data transform to a DLO ([field-guide-data.md](field-guide-data.md) §4) | one row per view or click with point, decision and unified ID | CIs need an aggregate measure; pattern is field practice |
 
 Recipe (generic): view → click funnel for one placement when several points share Website Engagement (for another channel, use its engagement DMO and action values, §1.6).
 1. Signal `<VIEW_SIGNAL_NAME>`: DMO Website Engagement; `User Identifier` `Website Engagement > Individual`; `Timestamp Identifier` `Engagement Date Time`; `Event Identifier` `Website Engagement Id`; filter `Engagement Channel Action` `Is Equal To` `personalization-view`, plus related `Personalization Log > Personalization Point Id` `Is Equal To` `<POINT_ID>`, `All Conditions Are Met`. Leave the flows checkbox cleared. The auto metric is `<SIGNAL_METRIC_NAME>` (`Count_<SignalApiName>`).

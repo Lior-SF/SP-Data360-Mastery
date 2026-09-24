@@ -45,8 +45,17 @@ Watch the prefixes: `mc_persnl_` is SP, `mc_pers_` is MCP. Prefer the current re
 | SP vs MCP differences | `references/sp-vs-mcp.md` |
 | Failure modes and fixes | `references/troubleshooting.md` |
 | SQL patterns | `references/sql-cookbook.md` |
+| Field-verified web lessons not in the docs (consent wiring, browser identity, sitemap engineering, SPA, WPM anchors, sitemap tests) | `references/field-guide-web.md` |
+| Field-verified data and operations lessons not in the docs (identity resolution, connector mapping, targeting, SQL diagnosis, credits, rollout, privacy) | `references/field-guide-data.md` |
 
 Keep each reference file under 500 lines and link every reference file directly from `SKILL.md`.
+
+Field lessons must be:
+- **Generic:** no customer, site, page, identifier, consent-category or tenant names; conditional wording for site-type-specific advice ("If the site is an SPA…").
+- **Labeled:** `(Field-observed, undocumented)` unless a doc states it, with `[src](url)` on the documented building blocks it relies on.
+- **Reproducible:** state the check that shows the behavior (console, network, SQL or UI path) so others can re-test it after an SDK upgrade or release.
+
+When a field lesson only refines a topic that already lives in another reference, add a one-line pointer there instead of duplicating it.
 
 ## Style
 

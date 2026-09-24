@@ -4,6 +4,29 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-24
+
+Field-knowledge release. It captures lessons verified in production implementations that the official docs don't state, written generically and labeled "Field-observed, undocumented" unless a doc confirms them.
+
+### Added
+
+- `references/field-guide-web.md`: field-verified web lessons that the docs don't state:
+  - consent wiring: CMP adapter sources and precedence, cookie parsing, empty and unparseable answers, persistent listeners, ceiling sizing, handler order, replay guards, memos written only after transmission, consent categories as a profile attribute
+  - identity capture in the browser: auth-signal probing, byte-for-byte identifiers, append-only data layers with positional logout suppression, login bursts, intent-armed logout, persisted binding, storage-key versioning, cross-tab staleness, memos keyed to the anonymous ID, re-sends after rotation
+  - sitemap engineering: page types vs eligibility, segment-boundary and hostname matching, locale handling, guarded module initialization, `.catch` on `init()`, version banner, re-injection safety
+  - SPA hardening, WPM anchors, and offline sitemap testing (scenario harness, stub fidelity, mutation self-test, versioned test assets)
+- `references/field-guide-data.md`: field-verified data and operations lessons:
+  - identity resolution design: party identifiers, the cross-object "Match to" pitfall, case sensitivity, limits, real-time prerequisites, full-rerun triggers and batching, pre-run checks, Is Anonymous, reconciliation
+  - website connector schema and mapping traps: Sync Schema and Add Events, optional-only schema changes, refresh modes, automapping, Replace Mapping, event-group `eventType`, envelope fields, `deviceId` mappings
+  - child-record targeting (`Count` > `0`), data graph edits, SQL diagnosis and a web-to-CRM acceptance query
+  - credits, rollout and UAT practice, and privacy decisions that need sign-off
+- Both guides registered in `SKILL.md` (routing row and a "Field-verified lessons" summary), `README.md`, `CONTRIBUTING.md` (with a rule that field lessons must be generic, labeled and reproducible) and the incorrect-fact issue template. Existing references gained one-line pointers or short fixes where the topics already live: Web SDK, sitemap templates, troubleshooting (including a new "content shows for some users only" symptom), implementation playbook, platform and setup, decisioning, WPM, measurement and SQL cookbook.
+- WPM bookmarklet: Google Chrome steps in `references/wpm-experiences-campaigns.md`, a troubleshooting symptom for `?sf_personalization_wpm` doing nothing or erroring on launch, and the bookmarklet fallback under "Opening WPM" in `SKILL.md`.
+
+### Changed
+
+- Opt Out correction: `references/web-sdk-and-sitemap.md` §3 and `references/sitemap-templates.md` §3 no longer say that an explicit init-time `Opt Out` records an opt-out for undecided visitors. Consent Log rows are documented only for the first event after opt-in and on revocation, so whether that `Opt Out` writes a row is now marked undocumented.
+
 ## [1.1.0] - 2026-09-24
 
 Generality and QA release. A blind QA ran 24 new-customer questions against v1.0.1 using only the skill, and independent graders checked every answer against the official docs. This release applies the fixes, and a regression QA of 10 questions confirmed no bias toward single-page apps, banners, industries or any past customer.
@@ -61,7 +84,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Lior-SF/SP-Data360-Mastery/releases/tag/v1.0.0

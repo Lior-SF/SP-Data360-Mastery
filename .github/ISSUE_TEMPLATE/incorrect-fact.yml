@@ -19,6 +19,8 @@ body:
         - references/sp-vs-mcp.md
         - references/troubleshooting.md
         - references/sql-cookbook.md
+        - references/field-guide-web.md
+        - references/field-guide-data.md
     validations:
       required: true
   - type: textarea

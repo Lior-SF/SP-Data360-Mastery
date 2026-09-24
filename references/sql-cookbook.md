@@ -312,6 +312,7 @@ LIMIT 20;
 ```
 - Run each statement separately. Q10b's output contains member identifiers, so don't paste it into tickets or chat.
 - Compare Q10a with the match rule's Party Identification Type and Name values [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_real_time_identity_resolution_for_einstein_personalization.htm&release=264.0.0&type=5). Placeholder values are a documented cause of oversized unified profiles, and identity resolution can't combine more than 50,000 records into one unified profile [src](https://help.salesforce.com/s/articleView?id=data.c360_a_resolution_troubleshooting_ir_errors.htm&release=264.0.0&type=5).
+- Next steps when a rule matches nothing: group Party Identification by data source as well as Name and Type, then run the web-to-CRM acceptance query on the link object with a negative control ([field-guide-data.md](field-guide-data.md) §4).
 - Q10b uses the DMO page spelling `ssot__Identificationnumber__c`; identity resolution troubleshooting writes `ssot__IdentificationNumber__c`. If one fails, use the other or the Query Editor field picker.
 
 ## Gaps and uncertainties
