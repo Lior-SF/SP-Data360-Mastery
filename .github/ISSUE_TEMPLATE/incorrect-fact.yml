@@ -10,6 +10,7 @@ body:
         - SKILL.md
         - references/implementation-playbook.md
         - references/platform-and-setup.md
+        - references/data-360-foundations.md
         - references/web-sdk-and-sitemap.md
         - references/sitemap-templates.md
         - references/decisioning.md

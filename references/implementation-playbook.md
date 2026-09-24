@@ -370,7 +370,7 @@ Skip items whose tag doesn't apply to the implementation.
 - [ ] [Web] Templates sized from their container (`width: 100%`), CSS scoped to the template.
 
 ### Limits and credits
-- [ ] Counts within limits: 25 decisions per point, 50 conditions, 10 recommenders, 20 attribution models, 20 active batch jobs [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_basics_limits.htm&release=264.0.0&type=5); 25 data graphs per org [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
+- [ ] Counts within limits: 25 decisions per point, 50 conditions, 10 recommenders, 20 attribution models, 20 active batch jobs [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_basics_limits.htm&release=264.0.0&type=5); 25 standard plus 25 real-time data graphs per org [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 - [ ] Monthly decisions forecast against the credit allowance; consumption tracked in Digital Wallet [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_basics_billable_usage_types.htm&release=264.0.0&type=5).
 - [ ] [Server] Clients retry HTTP 429 with backoff and jitter.
 - [ ] [Web] No proof-of-concept or test experiences left `Enabled` on broad page types or wildcard URLs; each matching view requests a billable decision (Field-observed; [field-guide-data.md](field-guide-data.md) §5).

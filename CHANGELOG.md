@@ -4,6 +4,20 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-24
+
+### Added
+
+- `references/data-360-foundations.md`: the documented Data 360 data layer SP depends on (data stream → DSO → DLO → DMO, categories, refresh modes, formula fields, mapping rules, naming, data spaces), the identity DMOs and web identity mappings, rulesets, match methods and advanced settings, real-time matching, unified and link outputs, consolidation rate, reconciliation rules and their effect on targeting, data graphs, a stage-by-stage QA checklist with `doc-derived (untested)` SQL, and generic field lessons. Routed from `SKILL.md` (new row and the identity resolution row), README, CONTRIBUTING and the incorrect-fact issue template.
+
+### Changed
+
+- Consistency fixes from the verification pass:
+  - `Exact` matching ignores letter case unless `Case Sensitive` is on (`field-guide-web.md`), and the Help and Apex API docs disagree on that setting's scope (`field-guide-data.md`).
+  - The real-time Unified Individual graph requirement is scoped to WPM, with the doc disagreement noted (`web-sdk-and-sitemap.md`).
+  - Data graph limits are 25 standard plus 25 real-time (`implementation-playbook.md`).
+  - Party is also mapped on the web email and phone contact points (`field-guide-data.md`).
+
 ## [1.2.1] - 2026-09-24
 
 ### Changed
@@ -90,7 +104,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.0.1...v1.1.0

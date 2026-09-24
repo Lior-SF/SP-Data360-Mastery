@@ -36,6 +36,7 @@ Watch the prefixes: `mc_persnl_` is SP, `mc_pers_` is MCP. Prefer the current re
 | Guardrails, routing, the most-missed facts | `SKILL.md` (keep under 500 lines) |
 | New-customer discovery, architecture, setup order, use-case patterns, go-live | `references/implementation-playbook.md` |
 | Setup, permissions, licensing, DMOs, limits | `references/platform-and-setup.md` |
+| Documented Data 360 data layer: streams, DLOs, DMOs, mapping, identity DMOs, rulesets, match and reconciliation rules, unified outputs, data graphs, data-layer QA SQL | `references/data-360-foundations.md` |
 | Web SDK, sitemap, consent, identity, Decisioning API | `references/web-sdk-and-sitemap.md` |
 | Sitemap templates (multi-page starter, CMP adapter, SPA add-on), event formats | `references/sitemap-templates.md` |
 | Data graphs, points, content schemas, decisions, recommenders | `references/decisioning.md` |
