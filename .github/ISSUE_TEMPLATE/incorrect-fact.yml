@@ -1,0 +1,54 @@
+name: Incorrect or outdated fact
+description: Report a statement in the skill that is wrong, outdated or describes Marketing Cloud Personalization instead of Salesforce Personalization.
+labels: ["accuracy"]
+body:
+  - type: dropdown
+    id: file
+    attributes:
+      label: File
+      options:
+        - SKILL.md
+        - references/platform-and-setup.md
+        - references/web-sdk-and-sitemap.md
+        - references/decisioning.md
+        - references/wpm-experiences-campaigns.md
+        - references/measurement-and-attribution.md
+        - references/mobile-and-channels.md
+        - references/sp-vs-mcp.md
+        - references/troubleshooting.md
+        - references/sql-cookbook.md
+    validations:
+      required: true
+  - type: textarea
+    id: statement
+    attributes:
+      label: Statement in the skill
+      description: Quote the sentence or table row.
+    validations:
+      required: true
+  - type: textarea
+    id: correct
+    attributes:
+      label: What is correct
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Official source
+      description: Link to Salesforce Help, the Salesforce Personalization developer guide, the Salesforce Interactions SDK guide, Data 360 help or release notes.
+      placeholder: https://help.salesforce.com/s/articleView?id=mktg.persnl_...
+    validations:
+      required: true
+  - type: input
+    id: release
+    attributes:
+      label: Salesforce release
+      placeholder: "264 (Winter '27)"
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Publication safety
+      options:
+        - label: This report contains no customer names, org identifiers, credentials or confidential information.
+          required: true

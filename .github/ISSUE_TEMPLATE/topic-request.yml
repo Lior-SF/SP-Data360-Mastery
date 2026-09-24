@@ -1,0 +1,27 @@
+name: Missing topic
+description: Ask for Salesforce Personalization knowledge the skill does not cover yet.
+labels: ["coverage"]
+body:
+  - type: textarea
+    id: topic
+    attributes:
+      label: Topic
+      description: What should the skill be able to answer?
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example prompt
+      description: A question the agent answered poorly or could not answer.
+  - type: textarea
+    id: sources
+    attributes:
+      label: Official sources, if known
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Publication safety
+      options:
+        - label: This request contains no customer names, org identifiers, credentials or confidential information.
+          required: true

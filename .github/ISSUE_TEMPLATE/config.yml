@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Official Salesforce Personalization documentation
+    url: https://help.salesforce.com/s/articleView?id=mktg.mc_persnl.htm&type=5
+    about: Salesforce documentation is authoritative. Check it before reporting a gap.

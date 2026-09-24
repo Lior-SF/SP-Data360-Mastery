@@ -1,0 +1,8 @@
+# Local list of customer or project names that must never be published.
+# One term per line; read by scripts/validate_skill.py. Never commit it.
+.customer-terms.txt
+
+.DS_Store
+__pycache__/
+*.pyc
+.env
