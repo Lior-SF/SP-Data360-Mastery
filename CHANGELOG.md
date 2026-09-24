@@ -4,6 +4,12 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.4.4] - 2026-09-24
+
+### Added
+
+- MIT `LICENSE`, `license: MIT` in the `SKILL.md` frontmatter, and a license line in the README.
+
 ## [1.4.3] - 2026-09-24
 
 ### Changed
@@ -136,7 +142,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.3...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.4...HEAD
+[1.4.4]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.0...v1.4.1

@@ -15,6 +15,7 @@ description: >-
   personalization points or decisions, WPM, sitemaps, engagement signals or
   attribution, and whenever an answer must be kept separate from Marketing Cloud
   Personalization (MCP, Interaction Studio, Evergage).
+license: MIT
 ---
 
 # SP Data360 Mastery

@@ -109,6 +109,8 @@ Use the path you cloned into. Releases are tagged (`v1.0.0`, …); see [CHANGELO
 
 ## Disclaimer
 
+Released under the [MIT License](LICENSE): copy, change and share it, keeping the license notice.
+
 A community knowledge base, not official Salesforce documentation. Salesforce documentation remains authoritative, and features, limits and UI labels change with each release. The skill contains no customer data and no forward-looking statements.
 
 Maintained by [@Lior-SF](https://github.com/Lior-SF).
