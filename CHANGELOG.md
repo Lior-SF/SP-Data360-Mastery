@@ -4,6 +4,14 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-24
+
+### Added
+
+- Test-experience hygiene:
+  - `references/wpm-experiences-campaigns.md`: the risk of leftover `Enabled` POC or test experiences, naming conventions, the pre-go-live sweep with `Show All Personalization Experiences`, returning test decisions to `Draft`, a data check through the Personalization Log, and an experience register.
+  - Also a go-live checklist item in `references/implementation-playbook.md`, an "old, test or unexpected content appears" symptom in `references/troubleshooting.md`, and a summary under WPM in `SKILL.md`.
+
 ## [1.3.0] - 2026-09-24
 
 ### Added
@@ -104,7 +112,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.1.0...v1.2.0

@@ -358,6 +358,7 @@ Skip items whose tag doesn't apply to the implementation.
 - [ ] [All] Every point has a catch-all or an intended empty state; all decisions are `Live`.
 - [ ] [All] Authenticated test calls with `EnableDiagnostics` show no `521`/`523` rule errors or `401 POINT_NOT_CONFIGURED` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-pipeline-diagnostics.html).
 - [ ] [All] Recommenders show `Last Successful Refresh`; fallbacks attached.
+- [ ] [Web] Test and POC experiences are `Disabled` or deleted on every page type, test decisions are back in `Draft`, test-only targeting rules are removed, and test experiments are ended ([wpm-experiences-campaigns.md](wpm-experiences-campaigns.md), test-experience hygiene).
 - [ ] [Web] `Show All Personalization Experiences` confirms one placement path per slot [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5).
 - [ ] [SPA] One decision request per navigation. [Web] Back/forward restore doesn't duplicate content.
 - [ ] [Web] Placement tested with one user in each state that changes the DOM (signed in or out, tiers); every slot has a stable wrapper present for everyone ([field-guide-web.md](field-guide-web.md) §5).

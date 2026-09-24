@@ -169,6 +169,10 @@ Each fact is detailed and cited in the linked reference.
 - **Display methods:** `Replace a Content Zone`, `Use Content Zone Handler`, `Replace an Element`, `Add Before an Element`, `Add After an Element` and `Add an Overlay`.
 - **Selectors:** element targets are CSS selectors. An element that has only an `id` must be targeted as `#id`.
 - **Publishing:** nothing goes live until `State` is `Enabled` and you `Save`. Previewing a specific decision ignores its targeting rules.
+- **Test-experience hygiene:** an `Enabled` POC or test experience keeps serving real visitors.
+  - Prefix test assets (`TEST_`, `POC_`).
+  - Before go-live, sweep every page type with `Show All Personalization Experiences`, disable leftovers, and return test decisions to `Draft`.
+  - Details are in the WPM reference and [troubleshooting.md](references/troubleshooting.md).
 - **Experience templates:** since release 262 they are built in the app, not in the sitemap.
 - **Campaigns:** personalization campaigns support Dynamic Content schemas on the web channel only.
 - **Experiments:** Bayesian, with at least 1,000 participants per cohort (check the Experiment Summary participant totals). The first cohort is the control, and settings are locked after `Start`. `Winner Found` (95% range entirely above control) is a recommendation; roll out manually, or automate through the Experiment Connect API.
