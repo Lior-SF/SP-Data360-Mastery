@@ -35,6 +35,7 @@ Decide which product the prompt is about before answering.
 
 - If the prompt mixes vocabularies ("Einstein Recipe for my personalization point"), say which product each term belongs to and map it to the SP equivalent using [references/sp-vs-mcp.md](references/sp-vs-mcp.md).
 - `SalesforceInteractions`, "sitemap" and "content zone" exist in both products with different behavior. Never reuse MCP semantics for them.
+- MCP-only features don't exist in SP: native frequency capping, Einstein Recipes, Gears and campaign template code. Don't claim SP has them. To cap frequency in SP, build a targeting rule over the visitor's view engagements.
 
 ## Answer workflow
 
@@ -113,15 +114,24 @@ Each fact is detailed and cited in the linked reference.
 - **Initialization order:** `SalesforceInteractions.Personalization.Config.initialize(...)` must run **before** `SalesforceInteractions.init(...)`.
 - **Flicker defense defaults:** `redisplayTimeoutMilliseconds: 2000` and `renderPersonalizationAfterTimeoutElapsed: false`. A response that arrives after the timeout is not rendered.
 - **`init` options:** documented options are `consents`, `cookieDomain` and, for SP, `personalization.dataspace`. Treat any other option as undocumented.
+- **Where event data goes:**
+  - Profile data belongs in `user.attributes`, with an `eventType` such as `identity`, `partyIdentification` or `contactPointEmail`.
+  - Fields placed under `interaction.attributes` become engagement fields, so no contact point is created.
+  - `user.identities` is MCP's identity model.
+- **`isMatch`:** must return a boolean. MCP allows a Promise; in SP a returned Promise is truthy and matches every page.
 - **Page type names:** a sitemap page type `name` is both the WPM `Current Page Type` binding and the `sourcePageType` on events. Renaming it silently breaks experiences and reports.
+- **Fetching on the web:** call `SalesforceInteractions.Personalization.fetch([...])`; `fetchDecisions` is the mobile SDK method. Dynamic Content values arrive in each personalization's `attributes`, not in `data`.
 - **Personalization events:** web renders emit `personalization-view` and `personalization-click` (`userEngagement`) into the Website Engagement DMO.
 - **Decisioning API:** `POST https://{tenantSpecificEndpoint}/personalization/decisions`, with an authenticated variant. All points in one request must share a profile data graph, and overload returns HTTP 429.
 
 ### Decisioning — [decisioning.md](references/decisioning.md)
 
-- A point on a **standard** profile data graph is evaluated against a blank anonymous profile unless the caller supplies profile data, so profile-based targeting rules evaluate false. Use a **real-time** profile data graph for live web targeting.
-- Choosing a personalization type fixes the point's shape: Recommendations (recommender output) or Dynamic Content (attributes stored on the decision).
-- Decisions are evaluated in priority order, and the first eligible decision wins. Check the reference for decisions-per-point and recommender limits before designing.
+- **Standard vs real-time data graphs:** a point on a **standard** profile data graph skips the profile lookup and is evaluated against a blank anonymous profile unless the caller supplies profile data, so profile-based targeting rules evaluate false. Use a **real-time** profile data graph for live web targeting; WPM lists only points built on one.
+- **Personalization type:** choosing a type fixes the point's shape: Recommendations (recommender output) or Dynamic Content (attributes stored on the decision; still `ManualContent` in the API).
+- **Real-time graph joins:** real-time profile data graphs join child objects only through the parent object's primary key. Design loyalty and other profile data to relate to Individual or Unified Individual, not through Party Identification values.
+- **Targeting context:** targeting rules can use request context as well as profile data: `Scheduling`, `Source`, `UTM Parameters` and `Visit Context` (page type).
+- **Decision evaluation:** only `Live` decisions (not `Draft`) are evaluated, in priority order, and one decision is returned per point.
+- **No default decision:** when nothing qualifies, the response reports `NO_DECISION_QUALIFIED`. Build an explicit catch-all decision if the slot must never be empty.
 
 ### WPM, campaigns, experiments — [wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md)
 
@@ -136,6 +146,7 @@ Each fact is detailed and cited in the linked reference.
 ### Measurement — [measurement-and-attribution.md](references/measurement-and-attribution.md)
 
 - **Signals and the Personalization Log:** a signal can be an attribution funnel stage only if it has an active relationship to the Personalization Log DMO. Website Engagement has no personalization point field, so filter by point through the Personalization Log relationship.
+- **Web connector schema:** the relationship joins Website Engagement `PersonalizationContentId` to the Personalization Log `Id`. If the event schema lacks `personalizationContentId`, or it isn't mapped to the Website Engagement DMO, views and clicks can't be attributed.
 - **Funnels vs CTR:** attribution funnels count **individuals** whose next stage happened within the window. Funnel conversion differs from raw event click-through rate (CTR).
 - **Custom attribution:** 2–4 stages, `First Touch` or `Last Touch`, per-org and per-data-space model limits. Predefined attribution needs the Product Browse, Shopping Cart and Product Order engagement objects.
 - **CRM Analytics:** Pipeline Intelligence requires CRM Analytics. The Attribution Intelligence `Analytics` tab has no documented CRM Analytics dependency.
@@ -147,7 +158,9 @@ Each fact is detailed and cited in the linked reference.
 Apply these unless the user's constraints say otherwise; explain the trade-off when you deviate.
 
 - **Placement:** ask the site team for a dedicated, stable, empty placeholder element with an `id`, and target it with WPM `Replace an Element`. Avoid anchors that exist only in some user states.
-  - Don't also declare a sitemap content zone for the same slot. That creates two placement paths, and the zone selector drives flicker-defense hiding.
+  - For framework-rendered components (React, Angular, Vue), SP recommends registering a Content Zone Handler so the framework, not DOM replacement, renders the content.
+  - Don't also declare a sitemap content zone for the same slot; that creates two placement paths.
+  - SP flicker defense hides the elements that enabled experiences target. The MCP behavior of hiding content-zone selectors doesn't apply.
 - **SPAs:** call `reinit()` after the new route's DOM settles (debounce plus a hard ceiling), block concurrent calls, and make one-time patches idempotent so the sitemap can be re-injected safely.
 - **Consent:** feed `consents` from the consent manager as a promise that always settles. Events before opt-in are dropped, so replay the first page view once after opt-in, and only if it was suppressed.
 - **Identity:** `partyIdentification` `IDName`/`IDType` must match the identity resolution match rule exactly.

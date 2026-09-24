@@ -4,7 +4,7 @@ This skill is only useful if agents can trust it. Every change must keep it accu
 
 ## Ground rules
 
-1. **Salesforce Personalization, not MCP.** Salesforce Personalization (SP) is the Data 360–native product sold with Marketing Cloud Next. Marketing Cloud Personalization (MCP, formerly Interaction Studio / Evergage) is a different product. Never describe MCP behavior as SP behavior; MCP belongs only in [references/sp-vs-mcp.md](references/sp-vs-mcp.md) and in "MCP confusion traps" sections.
+1. **Salesforce Personalization, not MCP.** Salesforce Personalization (SP) is the Data 360–native product sold with Marketing Cloud Next. Marketing Cloud Personalization (MCP, formerly Interaction Studio / Evergage) is a different product. Never describe MCP behavior as SP behavior. MCP belongs in [references/sp-vs-mcp.md](references/sp-vs-mcp.md) and "MCP confusion traps" sections; anywhere else, an MCP citation must be explicitly labeled "MCP" on the same line.
 2. **Cite official sources.** Every non-obvious fact ends with `[src](url)` pointing at an official page.
 3. **Label what isn't documented.** Use `(UNVERIFIED)` for unconfirmed statements and `(Field-observed, undocumented)` for behavior seen in real implementations but absent from documentation.
 4. **Publish nothing private.** The repository is public. Never add:

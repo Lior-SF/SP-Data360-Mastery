@@ -6,8 +6,8 @@ Checks:
   * every relative Markdown link resolves; every reference file is linked from SKILL.md
   * publication safety: credentials, Data 360 tenant hosts, org and record IDs,
     and customer terms supplied privately (BANNED_TERMS env var or .customer-terms.txt)
-  * Marketing Cloud Personalization (MCP) pages are cited only in references/sp-vs-mcp.md
-    or under a heading that mentions MCP
+  * Marketing Cloud Personalization (MCP) pages are cited only in references/sp-vs-mcp.md,
+    under a heading that mentions MCP, or on a line that labels the source as MCP
   * each reference file carries inline citations
 
 Exit code 0 when no errors are found (warnings are allowed unless --strict).
@@ -209,11 +209,11 @@ def check_mcp_citations(report: Report) -> None:
             match = HEADING_PATTERN.match(line)
             if match and len(match.group(1)) <= 3:
                 heading = match.group(2)
-            if MCP_SOURCE_URL.search(line) and "MCP" not in heading:
+            if MCP_SOURCE_URL.search(line) and "MCP" not in heading and "MCP" not in line:
                 report.error(
                     path,
                     number,
-                    "cites a Marketing Cloud Personalization page outside an MCP section",
+                    "cites a Marketing Cloud Personalization page without labeling it MCP",
                 )
 
 
