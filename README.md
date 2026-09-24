@@ -113,4 +113,4 @@ Released under the [MIT License](LICENSE): copy, change and share it, keeping th
 
 A community knowledge base, not official Salesforce documentation. Salesforce documentation remains authoritative, and features, limits and UI labels change with each release. The skill contains no customer data and no forward-looking statements.
 
-Maintained by [@Lior-SF](https://github.com/Lior-SF).
+Maintained by Lior Omri ([@Lior-SF](https://github.com/Lior-SF)).

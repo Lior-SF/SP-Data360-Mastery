@@ -4,6 +4,10 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Changed
+
+- Author named as Lior Omri in `LICENSE`, the README and `SKILL.md` metadata.
+
 ## [1.4.4] - 2026-09-24
 
 ### Added

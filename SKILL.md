@@ -16,6 +16,8 @@ description: >-
   attribution, and whenever an answer must be kept separate from Marketing Cloud
   Personalization (MCP, Interaction Studio, Evergage).
 license: MIT
+metadata:
+  author: Lior Omri
 ---
 
 # SP Data360 Mastery
