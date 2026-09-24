@@ -17,6 +17,7 @@
   ```
 
   GitHub Copilot and Gemini CLI read that path. Cursor, Claude Code, and Codex use their own folders; the table below has each one. Then ask the agent about Salesforce Personalization.
+- **Try it:** *"We're starting a Salesforce Personalization project for a multi-page retail site. Give me the discovery checklist and setup order."* More in [Example prompts](#example-prompts).
 - **Update:** `git -C ~/.agents/skills/sp-data360-mastery pull` (use the path you cloned into)
 - **Found something wrong?** [Open an issue](https://github.com/Lior-SF/SP-Data360-Mastery/issues/new/choose) with an official source link.
 
@@ -25,6 +26,41 @@
 An open Agent Skill that makes AI agents expert in **Salesforce Personalization** — the Data 360–native personalization product sold with Marketing Cloud Next (formerly Einstein Personalization). It follows the [Agent Skills specification](https://agentskills.io/specification): one `SKILL.md` and a `references/` folder. Nothing in the skill is specific to Cursor or Claude.
 
 Every platform fact comes from current official Salesforce documentation and is cited inline. The skill also guards against the most common failure mode: answering with **Marketing Cloud Personalization (MCP)** knowledge. MCP (formerly Interaction Studio / Evergage) is a different product with different objects, SDK behavior and reporting.
+
+## Example prompts
+
+Ask in plain language. Mentioning "Salesforce Personalization", "Data 360", "WPM" or "personalization point" helps the agent pick the skill up. Replace anything in angle brackets with your own details.
+
+**Starting a new implementation**
+- "We're starting Salesforce Personalization for a `<multi-page / SPA / Experience Cloud>` site. Give me the discovery questions, the setup order and the go-live checklist."
+- "Which license do we need to personalize web and mobile, and what consumes credits?"
+- "Recommend an architecture for a site plus a native app that should share one unified profile."
+
+**Web SDK and sitemap**
+- "Write a starter sitemap for a server-rendered site with home, category, product, cart and order confirmation pages, wired to `<CMP_NAME>`."
+- "How do I send the signed-in customer ID so it matches the CRM record in identity resolution?"
+- "Our site is a React SPA. What changes in the sitemap, and do I need `reinit()`?"
+
+**Decisions, WPM and experiments**
+- "Personalize a homepage hero slot: one version for known customers, one for anonymous visitors. What goes in each decision, and in what priority order?"
+- "WPM doesn't list my personalization point. What should I check?"
+- "How do I cap how often a visitor sees an overlay?"
+- "Set up an A/B test between two recommenders on one personalization point."
+
+**Data 360 and identity**
+- "Design the identity resolution ruleset: match rules, party identification and reconciliation for web plus CRM data."
+- "Explain data stream → DLO → DMO → data graph for personalization, and which graph a point needs."
+- "Give me Query Editor SQL to check that web visitors are being unified with CRM contacts."
+
+**Measurement and troubleshooting**
+- "Give me SQL for views, clicks and CTR per personalization point for the last 30 days."
+- "Set up a view → click → purchase funnel with attribution."
+- "Decisions come back in the network tab but nothing renders on the page. Walk me through the checks."
+- "Events aren't showing up in Data 360 after I accepted the consent banner. Why?"
+
+**Keeping the two products apart**
+- "A colleague wants an Einstein Recipe on our personalization point. What's the Salesforce Personalization equivalent?"
+- "What's the difference between Salesforce Personalization and Marketing Cloud Personalization (Interaction Studio)?"
 
 ## What's inside
 

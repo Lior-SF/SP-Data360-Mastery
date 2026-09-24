@@ -7,6 +7,7 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 ### Changed
 
 - Author named as Lior Omri in `LICENSE`, the README and `SKILL.md` metadata.
+- `README.md`: an "Example prompts" section grouped by task, and a sample prompt in the TL;DR.
 
 ## [1.4.4] - 2026-09-24
 
