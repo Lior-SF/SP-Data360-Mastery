@@ -1,5 +1,27 @@
 # SP Data360 Mastery
 
+## TL;DR
+
+- **What:** an Agent Skill for Cursor and Claude Code that turns your AI agent into a Salesforce Personalization (Data 360 / Marketing Cloud Next) expert.
+- **Why trust it:** every documented fact cites current official Salesforce docs, and every file was independently re-verified. Lessons from real implementations that the docs don't state are labeled `(Field-observed, undocumented)`.
+- **Guards against the #1 mistake:** answering with Marketing Cloud Personalization (Interaction Studio / Evergage) knowledge.
+- **Use it for:**
+  - jump-starting a new customer (discovery, architecture by site type and channel, setup order, go-live)
+  - Web SDK and sitemaps, WPM, decisions and recommenders
+  - identity resolution, consent, attribution and reporting SQL
+  - troubleshooting
+- **Install (Cursor):**
+
+  ```bash
+  git clone https://github.com/Lior-SF/SP-Data360-Mastery.git ~/.cursor/skills/sp-data360-mastery
+  ```
+
+  Then just ask your agent about Salesforce Personalization; the skill loads automatically.
+- **Update:** `git -C ~/.cursor/skills/sp-data360-mastery pull`
+- **Found something wrong?** [Open an issue](https://github.com/Lior-SF/SP-Data360-Mastery/issues/new/choose) with an official source link.
+
+## About
+
 An Agent Skill that makes AI coding agents expert in **Salesforce Personalization** — the Data 360–native personalization product sold with Marketing Cloud Next (formerly Einstein Personalization).
 
 Every platform fact comes from current official Salesforce documentation and is cited inline. The skill also guards against the most common failure mode: answering with **Marketing Cloud Personalization (MCP)** knowledge. MCP (formerly Interaction Studio / Evergage) is a different product with different objects, SDK behavior and reporting.
