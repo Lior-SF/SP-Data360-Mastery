@@ -4,6 +4,15 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-24
+
+### Changed
+
+- `SKILL.md` implementation defaults:
+  - Real-time identity matching behavior: `Exact`, with `Exact Normalized` for phone and email; case sensitivity is opt-in.
+  - The shared-device risk when a browser stays bound to a member after sign-out.
+  - Consent compliance ownership, and the risk of mapping `Opt In` to an always-active category.
+
 ## [1.0.0] - 2026-09-24
 
 ### Added
@@ -22,5 +31,6 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Lior-SF/SP-Data360-Mastery/releases/tag/v1.0.0

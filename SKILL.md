@@ -173,10 +173,12 @@ Apply these unless the user's constraints say otherwise; explain the trade-off w
   - SP flicker defense hides the elements that enabled experiences target. The MCP behavior of hiding content-zone selectors doesn't apply.
 - **SPAs:** call `reinit()` after the new route's DOM settles (debounce plus a hard ceiling), block concurrent calls, and make one-time patches idempotent so the sitemap can be re-injected safely.
 - **Consent:** feed `consents` from the consent manager as a promise that always settles. Events before opt-in are dropped, so replay the first page view once after opt-in, and only if it was suppressed.
+  - The SDK trusts whatever consent status the sitemap passes, and compliance stays with the site owner. Mapping `Opt In` to an always-active "strictly necessary" category opts every visitor in, including those who declined everything. Get privacy sign-off on the category mapping.
 - **Identity:** `partyIdentification` `IDName`/`IDType` must match the identity resolution match rule exactly.
   - Never send placeholder values ("NA", "null") as identifiers.
   - Call `resetAnonymousId()` before binding a different member on the same device.
-  - Real-time identity resolution runs only `Exact` or `Exact Normalized` match rules. Fuzzy rules take effect in the next scheduled run.
+  - In real-time matching, every criterion runs as `Exact` except phone and email, which run as `Exact Normalized`, whatever the scheduled match method. Fuzzy matching applies only in scheduled runs. Case-sensitive matching is an opt-in advanced criteria setting.
+  - **Shared devices:** if a browser stays bound to a member after sign-out, real-time decisions keep resolving to that member's unified profile. The next person on the device then sees the member's personal content. Either rotate the anonymous ID on logout or suppress personal content for signed-out sessions.
 - **Templates:**
   - Scope CSS class names to the template.
   - Size from the container: `width: 100%; align-self: stretch`, and container queries rather than viewport breakpoints.
