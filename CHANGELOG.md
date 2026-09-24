@@ -4,6 +4,12 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-09-24
+
+### Changed
+
+- `SKILL.md` routing: an explicit identity resolution row. Questions about rulesets, match rules, party identification, unification timing, reruns and reconciliation now go straight to `field-guide-data.md` §1, the identity events in the Web SDK reference and the identity SQL checks.
+
 ## [1.2.0] - 2026-09-24
 
 Field-knowledge release. It captures lessons verified in production implementations that the official docs don't state, written generically and labeled "Field-observed, undocumented" unless a doc confirms them.
@@ -84,7 +90,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.0.0...v1.0.1
