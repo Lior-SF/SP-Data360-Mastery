@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-- **What:** an Agent Skill for Cursor and Claude Code that turns your AI agent into a Salesforce Personalization (Data 360 / Marketing Cloud Next) expert.
+- **What:** an open [Agent Skill](https://agentskills.io) (`SKILL.md` plus reference files) that turns an AI agent into a Salesforce Personalization (Data 360 / Marketing Cloud Next) expert. The same folder works in any client that loads that format, including Cursor, Claude Code, GitHub Copilot, Codex, and Gemini CLI. The full client list is at [agentskills.io/clients](https://agentskills.io/clients).
 - **Why trust it:** every documented fact cites current official Salesforce docs, and every file was independently re-verified. Lessons from real implementations that the docs don't state are labeled `(Field-observed, undocumented)`.
 - **Guards against the #1 mistake:** answering with Marketing Cloud Personalization (Interaction Studio / Evergage) knowledge.
 - **Use it for:**
@@ -10,19 +10,19 @@
   - Web SDK and sitemaps, WPM, decisions and recommenders
   - identity resolution, consent, attribution and reporting SQL
   - troubleshooting
-- **Install (Cursor):**
+- **Install (shared folder):**
 
   ```bash
-  git clone https://github.com/Lior-SF/SP-Data360-Mastery.git ~/.cursor/skills/sp-data360-mastery
+  git clone https://github.com/Lior-SF/SP-Data360-Mastery.git ~/.agents/skills/sp-data360-mastery
   ```
 
-  Then just ask your agent about Salesforce Personalization; the skill loads automatically.
-- **Update:** `git -C ~/.cursor/skills/sp-data360-mastery pull`
+  GitHub Copilot and Gemini CLI read that path. Cursor, Claude Code, and Codex use their own folders; the table below has each one. Then ask the agent about Salesforce Personalization.
+- **Update:** `git -C ~/.agents/skills/sp-data360-mastery pull` (use the path you cloned into)
 - **Found something wrong?** [Open an issue](https://github.com/Lior-SF/SP-Data360-Mastery/issues/new/choose) with an official source link.
 
 ## About
 
-An Agent Skill that makes AI coding agents expert in **Salesforce Personalization** — the Data 360–native personalization product sold with Marketing Cloud Next (formerly Einstein Personalization).
+An open Agent Skill that makes AI agents expert in **Salesforce Personalization** — the Data 360–native personalization product sold with Marketing Cloud Next (formerly Einstein Personalization). It follows the [Agent Skills specification](https://agentskills.io/specification): one `SKILL.md` and a `references/` folder. Nothing in the skill is specific to Cursor or Claude.
 
 Every platform fact comes from current official Salesforce documentation and is cited inline. The skill also guards against the most common failure mode: answering with **Marketing Cloud Personalization (MCP)** knowledge. MCP (formerly Interaction Studio / Evergage) is a different product with different objects, SDK behavior and reporting.
 
@@ -48,37 +48,47 @@ Every platform fact comes from current official Salesforce documentation and is 
 
 ## Install
 
-Clone into a folder named `sp-data360-mastery` so the folder matches the skill's `name`.
+Clone into a folder named `sp-data360-mastery` so the folder matches the skill's `name`. The files are the same for every client. Only the parent directory changes.
 
-**Cursor — all projects**
-
-```bash
-git clone https://github.com/Lior-SF/SP-Data360-Mastery.git ~/.cursor/skills/sp-data360-mastery
-```
-
-**Cursor — a single project** (run from the project root)
+**Shared path** (GitHub Copilot and Gemini CLI both read this)
 
 ```bash
-git clone https://github.com/Lior-SF/SP-Data360-Mastery.git .cursor/skills/sp-data360-mastery
+git clone https://github.com/Lior-SF/SP-Data360-Mastery.git ~/.agents/skills/sp-data360-mastery
 ```
 
-**Claude Code**
+For one project, clone into `.agents/skills/sp-data360-mastery` at the repo root. Commit that folder if the team should share the skill.
+
+| Client | All your projects | This project only |
+|---|---|---|
+| Cursor | `~/.cursor/skills/` | `.cursor/skills/` |
+| Claude Code | `~/.claude/skills/` | `.claude/skills/` |
+| GitHub Copilot | `~/.copilot/skills/` or `~/.agents/skills/` | `.github/skills/`, `.agents/skills/`, or `.claude/skills/` |
+| Codex | `~/.codex/skills/` | `.codex/skills/` |
+| Gemini CLI | `~/.gemini/skills/` or `~/.agents/skills/` | `.gemini/skills/` or `.agents/skills/` |
+
+Cursor also loads skills placed in the Claude and Codex directories. Gemini CLI can install from the git URL:
 
 ```bash
-git clone https://github.com/Lior-SF/SP-Data360-Mastery.git ~/.claude/skills/sp-data360-mastery
+gemini skills install https://github.com/Lior-SF/SP-Data360-Mastery.git --consent
 ```
+
+Other products on the [client list](https://agentskills.io/clients) use the same `SKILL.md`. Put the clone in the skills directory that product documents.
+
+An agent that does not discover skills on its own can still use the repo: clone it anywhere and tell the agent to read `SKILL.md` and follow it, opening a file under `references/` only when `SKILL.md` routes there.
+
+A web chat with no skill upload and no access to the clone will not pick this up by itself. Claude.ai and Cowork load skills enabled on the claude.ai account, not the `~/.claude/skills/` folder on your machine.
 
 ## Update
 
 ```bash
-git -C ~/.cursor/skills/sp-data360-mastery pull
+git -C ~/.agents/skills/sp-data360-mastery pull
 ```
 
-Releases are tagged (`v1.0.0`, …); see [CHANGELOG.md](CHANGELOG.md) for what changed.
+Use the path you cloned into. Releases are tagged (`v1.0.0`, …); see [CHANGELOG.md](CHANGELOG.md) for what changed.
 
 ## How it works
 
-- The agent loads the skill automatically when a prompt concerns Salesforce Personalization; the description in `SKILL.md` lists the trigger terms.
+- Clients that implement Agent Skills load the skill when a prompt matches the description in `SKILL.md`.
 - `SKILL.md` holds the guardrails and routing. The agent reads only the reference files a question needs.
 - When the Salesforce Docs MCP server is available, the skill tells the agent to re-check volatile facts (limits, UI labels, new features) against live documentation before answering.
 

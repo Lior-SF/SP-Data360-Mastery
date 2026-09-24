@@ -4,6 +4,12 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-09-24
+
+### Changed
+
+- `README.md`: the skill is the open Agent Skills format, not a Cursor or Claude Code plugin. Install instructions cover the shared `~/.agents/skills/` path plus Cursor, Claude Code, GitHub Copilot, Codex, and Gemini CLI.
+
 ## [1.4.2] - 2026-09-24
 
 ### Fixed
@@ -130,7 +136,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.3...HEAD
+[1.4.3]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.3.0...v1.4.0
