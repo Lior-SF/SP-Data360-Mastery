@@ -8,8 +8,10 @@ body:
       label: File
       options:
         - SKILL.md
+        - references/implementation-playbook.md
         - references/platform-and-setup.md
         - references/web-sdk-and-sitemap.md
+        - references/sitemap-templates.md
         - references/decisioning.md
         - references/wpm-experiences-campaigns.md
         - references/measurement-and-attribution.md

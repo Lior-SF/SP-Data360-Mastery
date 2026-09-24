@@ -9,8 +9,10 @@ Every platform fact comes from current official Salesforce documentation and is 
 | File | Covers |
 |---|---|
 | [SKILL.md](SKILL.md) | Product guardrails, answer workflow, routing, and the facts agents most often get wrong |
+| [references/implementation-playbook.md](references/implementation-playbook.md) | Jump-start for a new customer: discovery checklist, architecture choices by channel and site type, setup order, use-case patterns, measurement plan, go-live checklist |
 | [references/platform-and-setup.md](references/platform-and-setup.md) | Architecture, licensing, permissions, Personalization Setup, DMOs, limits, feature timeline |
 | [references/web-sdk-and-sitemap.md](references/web-sdk-and-sitemap.md) | Salesforce Interactions SDK, sitemap, consent, identity, Personalization module, flicker defense, Decisioning API |
+| [references/sitemap-templates.md](references/sitemap-templates.md) | Copy-ready multi-page / server-rendered starter sitemap, CMP-agnostic consent adapter, optional SPA add-on, catalog/cart/order event formats |
 | [references/decisioning.md](references/decisioning.md) | Profile and item data graphs, personalization points, content schemas, decisions, targeting rules, recommenders |
 | [references/wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md) | Web Personalization Manager, experience templates, personalization campaigns, experimentation |
 | [references/measurement-and-attribution.md](references/measurement-and-attribution.md) | Engagement signals and metrics, attribution, Pipeline and Attribution Intelligence, reporting |

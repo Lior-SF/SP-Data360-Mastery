@@ -14,7 +14,7 @@ This skill is only useful if agents can trust it. Every change must keep it accu
    - internal conversations or named employees
    - roadmap or forward-looking statements
 
-   Use placeholders such as `<POINT_ID>`, `<TENANT_ENDPOINT>` and `#personalization-zone-hero`.
+   Use placeholders such as `<POINT_ID>`, `<POINT_API_NAME>`, `<TENANT_ENDPOINT>`, `<TARGET_SELECTOR>`, `<TEMPLATE_API_NAME>` and `<SIGNAL_METRIC_NAME>`.
 
 ## Which sources count
 
@@ -34,8 +34,10 @@ Watch the prefixes: `mc_persnl_` is SP, `mc_pers_` is MCP. Prefer the current re
 | Topic | File |
 |---|---|
 | Guardrails, routing, the most-missed facts | `SKILL.md` (keep under 500 lines) |
+| New-customer discovery, architecture, setup order, use-case patterns, go-live | `references/implementation-playbook.md` |
 | Setup, permissions, licensing, DMOs, limits | `references/platform-and-setup.md` |
 | Web SDK, sitemap, consent, identity, Decisioning API | `references/web-sdk-and-sitemap.md` |
+| Sitemap templates (multi-page starter, CMP adapter, SPA add-on), event formats | `references/sitemap-templates.md` |
 | Data graphs, points, content schemas, decisions, recommenders | `references/decisioning.md` |
 | WPM, experience templates, campaigns, experiments | `references/wpm-experiences-campaigns.md` |
 | Engagement signals, attribution, analytics, reporting | `references/measurement-and-attribution.md` |

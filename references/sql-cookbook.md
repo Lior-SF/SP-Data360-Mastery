@@ -1,10 +1,10 @@
 # Data 360 SQL Cookbook for Personalization
 
 ## Scope
-- SQL for Salesforce Personalization (SP) reporting and debugging on Data 360: banner views and clicks, decision breakdowns, daily trends, unified-individual counts, calculated insights (CIs), SP's own attribution sample, decision latency, orphan engagement events, and identity checks.
+- SQL for Salesforce Personalization (SP) reporting and debugging on Data 360: views and clicks per point, decision breakdowns, daily trends, unified-individual counts, calculated insights (CIs), SP's own attribution sample, decision latency, orphan engagement events, and identity checks.
 - Run ad-hoc SQL in Query Editor, which queries DLOs, DMOs, calculated insight objects (CIOs), and data graphs; you need data space access to each object, and creating queries needs the `Data Cloud Activation Specialist` permission set [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor_create_queries.htm&release=264.0.0&type=5). Tableau and DBeaver are the other integrated apps [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/int-apps-data-cloud.html). Save recurring metrics as CIs, which need `Data Cloud Architect` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
 - Status tags: `field-verified (Query Editor)` ran successfully in a live SP org; `doc-derived (untested)` uses only documented object, field, and function names but hasn't been run; `doc sample (verbatim)` is copied from SP Help.
-- Every query assumes the default data space (`ssot__` names) and the Website Engagement destination used by manual content. Placeholders: `<POINT_ID>`, `<PAGE_TYPE>`, `<RULESET_ID>`, `<START_DATE>`, `<END_DATE>`, `<CI_API_NAME>`.
+- Every query assumes the default data space (`ssot__` names) and the Website Engagement destination used by manual content, except Q4b (Product Browse Engagement); see "Joins and values" to switch channels. Placeholders: `<POINT_ID>`, `<PAGE_TYPE>`, `<RULESET_ID>`, `<START_DATE>`, `<END_DATE>`, `<CI_API_NAME>`.
 
 ## Rules
 
@@ -46,6 +46,7 @@
 - Log → point, decision, personalizer: `ssot__PersonalizationPointId__c`, `ssot__PersonalizationDecisionId__c`, `ssot__PersonalizerId__c` equal each object's `ssot__Id__c`; display names are in `ssot__Name__c` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_references_daily_personalization_requests_ci_ref.htm&release=264.0.0&type=5).
 - `ssot__EngagementChannelActionId__c` holds `personalization-view` / `personalization-click` for the Website Engagement destination (field-verified). Recommendation experiences using Product Engagement land in Product Browse Engagement as `catalog-object-view-start` / `catalog-object-click`, and custom destinations can rename interactions [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/track-personalization-engagement.html).
 - On web events, `ssot__IndividualId__c` is the source Individual keyed by the device ID, not a person (the web mapping sends `deviceId` → Individual ID [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-salesforce-interactions-sdk.html)); use Q5 for people.
+- Other channels: substitute `<ENGAGEMENT_DMO>` (for example `ssot__ProductBrowseEngagement__dlm`, or the `std__…Dmo__dlm` / `{prefix}__` form your org exposes) and `<VIEW_ACTION>` / `<CLICK_ACTION>` (for example `catalog-object-view-start` / `catalog-object-click`), keeping the join `<ENGAGEMENT_DMO>.…PersonalizationContentId__c = <PERSONALIZATION_LOG_DMO>.…Id__c`. The FK is documented on the DMOs listed in measurement-and-attribution.md §1.6, for example Product Browse Engagement [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-productbrowseengagementdmo-dmo.html). Field-verified results come from one org; re-verify names in the target org's Data Model tab.
 - Take point IDs from the log (Q2). Setup-UI URL IDs (`0Wl…`) don't match log IDs (`9pp…`) (Field-observed, undocumented).
 
 ## Queries
@@ -130,6 +131,20 @@ ORDER BY 1
 ```
 - `date_trunc` on a `timestamp with time zone` truncates in the current time zone by default [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/dc-sql-reference/datetime-func.html), and the event `dateTime` comes from the visitor's clock, which can be skewed [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-event-structure.html).
 - This is event CTR. Attribution funnels count individuals per stage, so their conversion rates differ by design [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_pers_attrib_intelligence_using.htm&release=264.0.0&type=5).
+
+### Q4b. Views and clicks per point and decision for Recommendations points — `doc-derived (untested)`
+Purpose: the Product Engagement destination (`eventType` `catalog`, `catalog-object-view-start` / `catalog-object-click`, recommended DMO Product Browse Engagement; payload carries `personalizationId` and `personalizationContentId`) [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/track-personalization-engagement.html). Field names vary by mapping; confirm them in the Data Model tab.
+```sql
+SELECT pl.ssot__PersonalizationPointId__c AS point_id,
+       pl.ssot__PersonalizationDecisionId__c AS decision_id,
+       SUM(CASE WHEN pbe.<ACTION_FIELD> = 'catalog-object-view-start' THEN 1 ELSE 0 END) AS views,
+       SUM(CASE WHEN pbe.<ACTION_FIELD> = 'catalog-object-click' THEN 1 ELSE 0 END) AS clicks
+FROM <PRODUCT_BROWSE_ENGAGEMENT_DMO> pbe
+JOIN ssot__PersonalizationLog__dlm pl ON pbe.<PERSONALIZATION_CONTENT_ID_FIELD> = pl.ssot__Id__c
+WHERE pbe.<DATETIME_FIELD> >= CAST('<START_DATE>' AS DATE)
+GROUP BY 1, 2
+```
+- Combine with a Website Engagement query (Q3) through `UNION ALL` for a mixed Dynamic Content + Recommendations report.
 
 ### Q5. Unified individuals for an identity resolution ruleset — `doc-derived (untested)`
 Purpose: count people instead of devices.

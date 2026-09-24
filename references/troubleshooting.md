@@ -4,7 +4,7 @@
 - Diagnoses web delivery and measurement failures in Salesforce Personalization (SP): the Salesforce Interactions SDK (Web SDK) with the Personalization module, the Data 360 sitemap, consent and identity, Web Personalization Manager (WPM), experience templates, the Decisioning API, engagement tracking, attribution, and Data 360 queries.
 - Not for Marketing Cloud Personalization (MCP, formerly Interaction Studio / Evergage). Advice that mentions `Evergage`, `getCampaignResponses`, campaign statistics, implicit consent, or `mc_pers_*` / `developer/personalization` pages is MCP and doesn't apply here.
 - Documented facts carry `[src](url)`. "(Field-observed, undocumented)" marks behavior seen in live SP implementations but absent from the docs; re-test it after SDK upgrades and seasonal releases. "(UNVERIFIED)" marks useful claims no doc confirms.
-- Placeholders: `<POINT_ID>`, `<POINT_API_NAME>`, `<PAGE_TYPE>`, `<TENANT_ENDPOINT>`, `<PARENT_DOMAIN>`, `<CMP_NAME>`, `#personalization-zone-hero` (target element), `Promo_Banner` (point), `Banner_Template` (experience template). `Q1`–`Q10` refer to `sql-cookbook.md`.
+- Placeholders: `<POINT_ID>`, `<POINT_API_NAME>`, `<PAGE_TYPE>`, `<TENANT_ENDPOINT>`, `<PARENT_DOMAIN>`, `<CMP_NAME>`, `<TARGET_SELECTOR>` (target element, for example `#<TARGET_ID>`), `<TEMPLATE_API_NAME>` (experience template). Examples use a single rendered slot; the same checks apply to overlays, recommendation strips and handler-rendered zones. `Q1`–`Q10` refer to `sql-cookbook.md`.
 
 ## Triage order
 Walk the pipeline in order and stop at the first failing stage. SDK logging is off by default (`none`, value 0), so start every session with this console snippet [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-debugging.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html):
@@ -15,7 +15,8 @@ const CE = SalesforceInteractions.CustomEvents;            // bind via the const
 document.addEventListener(CE.OnPageMatchStatusUpdated, (e) => console.table(e.detail.matchStatus));
 document.addEventListener(CE.OnEventSend, (e) => console.log('sent', e.detail.actionEvent));
 document.addEventListener(CE.OnException, (e) => console.error(e.detail.context, e.detail.error));
-SalesforceInteractions.reinit();                           // re-runs sitemap evaluation
+// Then reload the page (DevTools "Preserve log") rather than calling reinit(): reinit re-sends the page interaction
+// and a decision request (Field-observed, undocumented).
 ```
 - The integration page lists the constants as `interactions:onEventSend` etc., but its listener example uses `"salesforce:onEventSend"` (doc conflict) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html). Binding via `CustomEvents` avoids the question.
 - After `reinit()` the page interaction is sent again (Field-observed, undocumented; the docs only say it re-runs sitemap evaluation [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html)).
@@ -25,7 +26,7 @@ SalesforceInteractions.reinit();                           // re-runs sitemap ev
 3. **Page type matched.** Exactly one `matchStatus` row is `selected`, and it's the page type you expect; evaluation stops at the first match [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html). Events carry that name as `sourcePageType` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html).
 4. **Experience matched.** The debug line "matched enabled personalization experience config names" lists the WPM experience (Field-observed, undocumented). If it's missing, check the experience's State, its Location (`Current Page Type` or `Page URL`), and the data space.
 5. **Decision fetched.** Network: `POST https://<TENANT_ENDPOINT>/personalization/decisions` returns your point in `personalizations[]` with `attributes` (Dynamic Content) or `data` (Recommendations) populated [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html). Unauthenticated calls return no diagnostics; their codes go to the Personalization Log entry [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-pipeline-diagnostics.html). Manual probe: `SalesforceInteractions.Personalization.fetch(['<POINT_API_NAME>']).then(console.log)` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/request-personalization-through-sitemap.html); it's a real request, logged like production traffic (inference).
-6. **Render target found.** `document.querySelectorAll('#personalization-zone-hero').length === 1`. The debug line "flicker defense currently hiding the following transformations" lists each `{transformerName, tag, path}`, then "handling personalization response" appears (Field-observed, undocumented).
+6. **Render target found.** `document.querySelectorAll('<TARGET_SELECTOR>').length === 1`. The debug line "flicker defense currently hiding the following transformations" lists each `{transformerName, tag, path}`, then "handling personalization response" appears (Field-observed, undocumented).
 7. **View/click events sent.** In the Network payload to Data 360, look for `eventType` `userEngagement` with `interactionName` `personalization-view` (later `personalization-click`), carrying `personalizationId` and `personalizationContentId`; experiences using the Product Engagement destination (recommendations) send `catalog` events named `catalog-object-view-start` / `catalog-object-click` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/track-personalization-engagement.html). The debug line "Observing element for visibility" means view tracking is armed (Field-observed, undocumented).
 8. **Data landed in DMOs.** Q1 returns views and clicks for `<POINT_ID>`. Website connectors ingest by streaming [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_stream_schedule.htm&release=264.0.0&type=5), but no end-to-end latency is documented for them, so send a known test event and wait for it before concluding data is missing.
 
@@ -39,10 +40,15 @@ SalesforceInteractions.reinit();                           // re-runs sitemap ev
 ### Symptom: Single-page app (SPA) route changes show stale, missing, or duplicated personalization
 - **Cause:** SPAs must call `reinit()` on virtual navigation so the sitemap is re-evaluated [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html). Calling it before the new route's DOM exists targets missing elements; calling it several times per navigation fires duplicate fetches and impressions (Field-observed, undocumented).
 - **Confirm:** Per route change, count `OnInit` events (the documented SPA debugging hook [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html)) and `/personalization/decisions` requests in Network. More than one per navigation is a reinit storm.
-- **Fix:** Documented baseline: inside `init().then()`, poll `window.location.href` and call `reinit()` on change; the SDK example polls every 200 ms [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html), the SP example every 500 ms [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html). Hardening (Field-observed, undocumented): debounce until the route's DOM settles, add a hard ceiling so reinit always runs, ignore reinit requests while one is already scheduled or running, and guard History API / `fetch` patches with a marker property so a re-injected sitemap doesn't wrap them twice.
+- **Fix:** Documented baseline: inside `init().then()`, poll `window.location.href` and call `reinit()` on change; the SDK example polls every 200 ms [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html), the SP example every 500 ms [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html). Hardening (Field-observed, undocumented): debounce until the route's DOM settles, add a hard ceiling so reinit always runs, ignore reinit requests while one is already scheduled or running, and guard History API / `fetch` patches with a marker property so a re-injected sitemap doesn't wrap them twice. Add-on code: [sitemap-templates.md](sitemap-templates.md) §4.
 
-### Symptom: Back/forward navigation shows the banner twice and records a second impression
-- **Cause:** On a back/forward cache (bfcache) restore, the SDK can re-run personalization while the previous banner is still in the DOM (Field-observed, undocumented). No bfcache handling is documented.
+### Symptom: Multi-page site records duplicate page views or decisions
+- **Cause:** An SPA `reinit()` polling block, often copied from the SP example where it's labelled "SPA Websites" [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html), fires when scripts change the URL without navigating (`history.replaceState` for filters, anchors) and re-sends the page interaction (Field-observed, undocumented). `reinit()` is meant for pages whose "content and URL change without a full page reload" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html).
+- **Confirm:** Count `OnInit` events and `/personalization/decisions` requests per full page load; more than one means extra reinit calls.
+- **Fix:** Remove the polling block on multi-page sites (starter: [sitemap-templates.md](sitemap-templates.md) §2). For in-page swaps (quick view, variant, filters) send a catalog event such as `QuickViewCatalogObject` with `sendEvent` instead [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-catalog-interaction.html).
+
+### Symptom: Back/forward navigation shows the content twice and records a second impression
+- **Cause:** On a back/forward cache (bfcache) restore, the SDK can re-run personalization while the previous render is still in the DOM (Field-observed, undocumented). No bfcache handling is documented.
 - **Confirm:** Chrome DevTools → Application → Back/forward cache → **Test back/forward cache**, or navigate away and back. `window.addEventListener('pageshow', (e) => console.log(e.persisted))` prints `true` on a restore; then `document.querySelectorAll('[data-sf-personalization-id]').length` is above 1 and a second `personalization-view` is sent.
 - **Fix:** One implementation stopped it with the init option `bfcacheAutoReinit: false` (Field-observed, undocumented; it isn't among the documented `init` fields [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html)). Re-test after every SDK upgrade, and make custom rendering idempotent (remove the previous render before inserting).
 
@@ -56,7 +62,7 @@ SalesforceInteractions.reinit();                           // re-runs sitemap ev
 ### Symptom: A new device's first page view is missing after the visitor accepts the consent banner
 - **Cause:** `init()` can resolve before the `consents` Promise settles, and events sent before opt-in are dropped, not queued, so the initial page interaction is lost (Field-observed, undocumented; consistent with "doesn't store or transmit" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html)).
 - **Confirm:** In a fresh browser profile, accept consent after the page loads. No page-load interaction (`pageView` `1` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html)) is sent for that page.
-- **Fix:** Remember whether the initial page interaction was suppressed, and after the grant call `reinit()` exactly once. Never replay an interaction that already transmitted (Field-observed, undocumented pattern):
+- **Fix:** Optional on multi-page sites, where the next full page load is tracked normally. If the first view matters, remember whether the initial page interaction was suppressed, and after the grant call `reinit()` exactly once. Never replay an interaction that already transmitted (Field-observed, undocumented pattern):
 
 ```js
 let initialViewSuppressed = false;
@@ -107,7 +113,7 @@ if (initialViewSuppressed) { initialViewSuppressed = false; SalesforceInteractio
 
 ### Symptom: The experience template isn't offered in WPM
 - **Cause:** The template was stored with **Save**, which keeps it for later, instead of **Save & Activate**, or it isn't connected to this website in the template's "Connect to your site" step [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_experience_template_create.htm&release=264.0.0&type=5). (That inactive or unconnected templates are hidden in WPM is an inference.)
-- **Confirm:** Personalization app → **Experience Templates** → open `Banner_Template`: check its activation state, its data space, and its connected websites.
+- **Confirm:** Personalization app → **Experience Templates** → open `<TEMPLATE_API_NAME>`: check its activation state, its data space, and its connected websites.
 - **Fix:** Connect the website, click **Save & Activate**, then reload WPM.
 
 ### Symptom: WPM won't open or the login window never appears
@@ -176,11 +182,11 @@ Diagnostic codes resemble HTTP status codes but aren't; don't read them as such 
 ## Symptoms: Rendering
 
 ### Symptom: "Replace an Element" never renders on an element identified only by an id
-- **Cause:** Selector type mismatch. An element with only an `id` must be targeted as `#personalization-zone-hero`; class notation such as `DIV.personalization-zone-hero` matches nothing (Field-observed, undocumented; standard CSS semantics).
+- **Cause:** Selector type mismatch. An element with only an `id` must be targeted as `#<TARGET_ID>`; class notation such as `DIV.<TARGET_ID>` matches nothing (Field-observed, undocumented; standard CSS semantics).
 - **Confirm:** `document.querySelectorAll('<selector WPM saved>').length` must be 1. The "hiding the following transformations" debug line shows the saved `path` (Field-observed, undocumented).
-- **Fix:** Enter `#personalization-zone-hero` in the **Page Element** field, which accepts CSS [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_manually_personalize_page_elements.htm&release=264.0.0&type=5), or re-select with **Select Element** / **Select Parent**. Prefer stable, site-owned ids or `data-*` attributes over generated classes.
+- **Fix:** Enter `#<TARGET_ID>` in the **Page Element** field, which accepts CSS [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_manually_personalize_page_elements.htm&release=264.0.0&type=5), or re-select with **Select Element** / **Select Parent**. Prefer stable, site-owned ids or `data-*` attributes over generated classes.
 
-### Symptom: The banner renders twice, or existing content goes blank until the banner loads
+### Symptom: The content renders twice, or existing content goes blank until the personalized content loads
 - **Cause:** Two placement paths for one slot: a sitemap content zone with a selector, plus a WPM `Replace an Element` experience on the same element. Sitemap zones are exposed to WPM as their own targets [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-content-zones.html). Blank content until load comes from SP flicker defense, which hides the elements that enabled experiences target until render or `redisplayTimeoutMilliseconds`; debug logs list them as transformations with a `path` (Field-observed, undocumented). Hiding content-zone selectors is MCP Flicker Defender behavior; don't assume it in SP.
 - **Confirm:** Enable **Show All Personalization Experiences** in Preview Settings [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5); count `[data-sf-personalization-id]` elements; look for two hidden paths for one slot in the debug log (Field-observed, undocumented).
 - **Fix:** Pick one path per slot: a sitemap content zone with `Replace a Content Zone`, or WPM element targeting with no content zone declared for that element.
@@ -190,21 +196,21 @@ Diagnostic codes resemble HTTP status codes but aren't; don't read them as such 
 - **Confirm:** Throttle the network in DevTools and compare the decision request duration with the timeout; Q8 gives server-side latency per point.
 - **Fix:** The defaults "are sufficient for most use cases" [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/configure-flicker-defense.html). If needed, raise the timeout or set `renderPersonalizationAfterTimeoutElapsed: true` (content may then appear late), and remove duplicate fetches first.
 
-### Symptom: The banner collapses into a narrow vertical strip
+### Symptom: The rendered content collapses into a narrow vertical strip
 - **Cause:** The empty placeholder div sits in a `display:flex; flex-direction:column` parent whose alignment isn't `stretch`, so it measures 0 px wide and the injected content shrinks with it (Field-observed, undocumented; standard flexbox behavior).
 - **Confirm:** DevTools → Elements → Computed on the target: width `0px`, and the parent's `align-items` is `center` or `flex-start`.
-- **Fix:** In the template CSS (experience templates use HTML and CSS [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_experience_web.htm&release=264.0.0&type=5)), set `width:100%; align-self:stretch` on the target and the template root. Size with container queries rather than viewport media queries, because banners render inside page columns. `container-type: inline-size` stops the root from sizing to its content, so it needs the explicit width:
+- **Fix:** In the template CSS (experience templates use HTML and CSS [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_experience_web.htm&release=264.0.0&type=5)), set `width:100%; align-self:stretch` on the target and the template root. Size with container queries rather than viewport media queries, because injected content renders inside page columns. `container-type: inline-size` stops the root from sizing to its content, so it needs the explicit width:
 
 ```css
-#personalization-zone-hero, .banner-template { width: 100%; align-self: stretch; }
-.banner-template { container-type: inline-size; }
-.banner-template h2 { font-size: clamp(1rem, 5cqi, 2.25rem); }
-@container (max-width: 480px) { .banner-template .cta { width: 100%; } }
+<TARGET_SELECTOR>, .tpl-root { width: 100%; align-self: stretch; }
+.tpl-root { container-type: inline-size; }
+.tpl-root h2 { font-size: clamp(1rem, 5cqi, 2.25rem); }
+@container (max-width: 480px) { .tpl-root .cta { width: 100%; } }
 ```
 
-### Symptom: A "banner inside a banner"
-- **Cause:** The decision's image attribute points to a finished banner creative, with its own text and button baked in, rendered inside an HTML template that already draws the layout (Field-observed, undocumented).
-- **Confirm:** Open the decision's attribute values and load the image URL on its own; compare it with the `Banner_Template` design. If `attributes` arrive as configured, the SDK is working.
+### Symptom: A creative inside a creative (duplicated text or buttons)
+- **Cause:** The decision's image attribute points to a finished creative, with its own text and button baked in, rendered inside an HTML template that already draws the layout (Field-observed, undocumented).
+- **Confirm:** Open the decision's attribute values and load the image URL on its own; compare it with the `<TEMPLATE_API_NAME>` design. If `attributes` arrive as configured, the SDK is working.
 - **Fix:** Align assets with the template: art-only images with text in attributes, or full-creative images with an image-only template. Check the decision content before debugging the SDK.
 
 ### Symptom: On React, Vue, or Angular pages, content flashes then disappears, or preview cancel doesn't revert
@@ -247,7 +253,7 @@ Diagnostic codes resemble HTTP status codes but aren't; don't read them as such 
 ### Symptom: Attribution numbers don't match event counts or click-through rate (CTR)
 - **Cause:** They measure different things. First Touch and Last Touch decide which qualifying engagement gets 100% of the conversion value, not how many events count [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_attrib_config_custom_create.htm&release=264.0.0&type=5). Funnel stages count individuals, and each stage rate is relative to the previous stage [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_pers_attrib_intelligence_using.htm&release=264.0.0&type=5), so funnel conversion isn't raw event CTR. The custom-model wizard offered windows `24 Hrs`, `7 Days`, and `30 Days`, with no option under 24 hours (Field-observed, undocumented; the docs show only the predefined `7 days` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_attribution_settings.htm&release=264.0.0&type=5)).
 - **Confirm:** For the same point and dates, compare Q4's CTR with the Clicks stage conversion on the model's Analytics tab.
-- **Fix:** Report event CTR from SQL or calculated insights and conversion from attribution, and label every chart with the model and window. For stages 2–4, **Content Match** links item attribution to the previous stage [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_attrib_config_custom_create.htm&release=264.0.0&type=5). To stop a click on another banner being credited, also filter both funnel signals by the same point through the Personalization Log relationship (Field-observed, undocumented practice; signals can filter on one related DMO [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_engagement_signals_configure.htm&release=264.0.0&type=5)). Custom models need `Personalization Intelligence User`.
+- **Fix:** Report event CTR from SQL or calculated insights and conversion from attribution, and label every chart with the model and window. For stages 2–4, **Content Match** links item attribution to the previous stage [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_attrib_config_custom_create.htm&release=264.0.0&type=5). To stop a click on another point's content being credited, also filter both funnel signals by the same point through the Personalization Log relationship (Field-observed, undocumented practice; signals can filter on one related DMO [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_engagement_signals_configure.htm&release=264.0.0&type=5)). Custom models need `Personalization Intelligence User`.
 
 ### Symptom: The Pipeline Intelligence dashboard is empty
 - **Cause:** Foundational data installs the `Daily Personalization Uniques` and `Daily Personalization Requests` calculated insights, but they "must be manually scheduled" [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_deploy_foundational_data.htm&release=264.0.0&type=5). The dashboard needs both plus CRM Analytics; installing it needs `Personalization Intelligence User`, and the insights and their queries are billable [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_install_pers_pipeline_dashboard.htm&release=264.0.0&type=5).

@@ -2,6 +2,7 @@
 
 ## Scope
 
+- Copy-ready templates (multi-page starter, CMP adapter, optional SPA add-on) and the commerce event table: [sitemap-templates.md](sitemap-templates.md).
 - Browser side of Salesforce Personalization (SP): Data 360 website connector, Salesforce Interactions SDK (Web SDK) with its Data 360 module and the SP Personalization module, sitemap API, consent, identity, flicker defense, Web Personalization Manager (WPM) rendering, engagement tracking, content zone handlers, Decisioning API, debugging.
 - Authoritative: SP developer guide (`developer/einstein-personalization`), Interactions SDK Data 360 docs (`developer/data-cloud`), SP Help (`persnl_*`, `mc_persnl_*`), Data 360 Help, release notes. Release 264.0.0 unless stated.
 - Marketing Cloud Personalization (MCP, ex-Interaction Studio/Evergage) sources — `developer/personalization` and Help pages with the "Marketing Cloud Personalization" breadcrumb, including the "Marketing Cloud Next for Personalization" migration guide (`mc_pers_mcn_for_pers_*`) — are cited only in explicit MCP ≠ SP statements or flagged contradictions.
@@ -29,7 +30,8 @@
 | `contactPointEmail` / `contactPointPhone` | `deviceId`→PK + Party; `email`→Email Address; `phoneNumber`→Telephone Number |
 | Catalog → Product Browse Engagement | `id`→Product; `interactionName`→Engagement Channel Action; `personalizationId`→Personalization; `personalizationContentId`→Personalization Content |
 | Cart / Cart Item / Order | Shopping Cart Engagement / Shopping Cart Product Engagement / Product Order Engagement; `deviceId`→Individual |
-| Consent Log, Order Item | "Not mapped" |
+| Consent Log | "Not mapped" (SP guide) |
+| Order Item | "Not mapped" in the SP guide; the starter mapping sends it to Sales Order Product Engagement, which Maximize Revenue and order-line insights need [src](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-mobile-sdk-mappings-for-engagement-events.html) [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_profile_dg_for_max_rev.htm&release=264.0.0&type=5) |
 | `contactPointAddress` | "Don't map" |
 
 - Replace a sitemap later with **Upload | Replace Sitemap** on the website record page [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_qs_configure_website_connector.htm&release=264.0.0&type=5).
@@ -39,8 +41,14 @@
 - **Salesforce Data 360 Sitemap Builder** (Chrome extension, low/no-code; release 260) generates sitemap and schema [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_qs_sitemap_building.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=release-notes.rn_persnl_data_360_sitemap_builder.htm&release=260&type=5).
   - Tabs: `Settings` (data space, logging level, how the sitemap reacts to URL changes), `Consent Management`, `Page Types`, `Resolvers` (Element Selection or Custom JavaScript), `Profile Attributes` (SDK sends `deviceId` by default), `Events`, `Schema` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_qs_sitemap_bldr_tabs.htm&release=264.0.0&type=5).
   - Modes: `Configure`, `Inject` (local test before deploy), `Debug` (Data 360 event structure and decisioning payloads), `Review & Download` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_qs_sitemap_bldr_modes.htm&release=264.0.0&type=5).
-- WPM access: append `?sf_personalization_wpm` (or `&sf_personalization_wpm`); sandboxes use `sf_personalization_wpm&sf_personalization_wpm_env=prod_sandbox`; disable popup blockers if the login window doesn't open [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_access_web_personalization_manager.htm&release=264.0.0&type=5). Needs third-party cookies and `Personalization Admin` or `Personalization User` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_prerequisites.htm&release=264.0.0&type=5).
+- WPM access: append `?sf_personalization_wpm` (or `&sf_personalization_wpm`); sandboxes use `sf_personalization_wpm&sf_personalization_wpm_env=prod_sandbox`; disable popup blockers if the login window doesn't open [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_access_web_personalization_manager.htm&release=264.0.0&type=5). Needs third-party cookies and "a Personalization Admin or Personalization User permission set" [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_prerequisites.htm&release=264.0.0&type=5); the access page's permission table instead names a "Web Personalization Manager user permission set" (doc conflict; see [platform-and-setup.md](platform-and-setup.md) §3).
 - WPM lists only personalization points in the data space configured in the site's sitemap [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5), and only points built on a **real-time** profile data graph [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_standard_profile_data_graphs.htm&release=264.0.0&type=5).
+
+### Tag placement and cookie domain
+
+- Documented: copy the CDN script from the connector's **Integration Guide**, add it with a `<script>` tag in `<head>`, then call `init` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-salesforce-interactions-sdk.html). The SDK and sitemap ship together from the CDN [src](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-salesforce-web-sdk.html).
+- Undocumented for SP: `async`/`defer`, tag-manager deployment, CSP host lists. Guidance (inference): load early in `<head>` on every template, including checkout and confirmation pages; late loading (async, or a tag manager firing on DOM-ready) risks flicker and a missed first page event. If a tag manager is mandated, fire on its earliest trigger on every page and test flicker and first-page events.
+- `cookieDomain` sets the domain of the first-party identity cookies and defaults to the current site's domain [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html). Set it to the registrable domain (e.g. `example.com`) to share one anonymous ID across subdomains; separate registrable domains can't share cookies and stitch only through known-user identity resolution (inference from cookie rules). Set it in `init`: `setCookieDomain()` later needs `reinit()` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
 
 ## 2. `SalesforceInteractions.init`
 
@@ -77,6 +85,8 @@ updateConsents(consents: Consent | Consent[]): void
 getConsents(): ConsentWithMetadata[]   // [{ consent: {...}, lastUpdatedTime: Date, lastSentTime: Date }]
 ```
 
+- Read `consent.purpose` and `consent.status` on each `getConsents()` entry, not top-level fields [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html).
+
 - **Default with no consent = no tracking.** The SDK "doesn't store or transmit any collected data until it has been granted explicit consent" and "waits for a valid `Opt In` signal before beginning data collection"; a `Promise` for `consents` is the recommended pattern [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html). `consents` is **Required**; `consents: []` = no tracking until `updateConsents()` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html). The SDK sends events "only if a customer has consented"; on revocation it "immediately stops emitting events" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-salesforce-interactions-web-sdk.html). The MCP-breadcrumb migration guide states the same as "defaults to opt-out … all users are treated as opted-out" (see traps).
 - The SP example sitemap hard-codes `ConsentStatus.OptIn` in `init` — reference only, never ship it [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html).
 - `OnConsentRevoke` (`interactions:onConsentRevoke`, detail `{consent, lastUpdateTime, lastSentTime?}`) fires on `Opt In` → `Opt Out`; `OnShutDown` fires when the SDK shuts down, e.g. on an `Opt Out` update [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html).
@@ -84,6 +94,12 @@ getConsents(): ConsentWithMetadata[]   // [{ consent: {...}, lastUpdatedTime: Da
 - Each entry translates to `eventType = "consentLog"` (category `Engagement`) with `provider`, `purpose`, `status` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html). The SP mapping guide leaves Consent Log unmapped [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-salesforce-interactions-sdk.html).
 - Web ≠ Mobile: the Engagement Mobile SDK defaults to `Consent.pending` (2.x: events collected locally until opt-in/out; 3.x: SDK-managed, can't be set manually) [src](https://developer.salesforce.com/docs/data/data-cloud-engagement-mobile-sdk/guide/c360a-api-engagement-mobile-sdk-consent-management-v2.html) [src](https://developer.salesforce.com/docs/data/data-cloud-engagement-mobile-sdk/guide/c360a-api-engagement-mobile-sdk-consent-management-v3.html). Don't assume a Web pending queue.
 - (Field-observed, undocumented): `init()` resolves before a pending `consents` Promise settles; events are dropped, not queued, while not opted in; `getConsents()` returns `Opt In` while the Consent Log DLO row holds `opt-in`.
+
+### Connecting any consent manager (CMP-agnostic)
+
+- Documented contract: pass `consents` as a Promise resolving to `Consent[]` (the init page recommends it "for a third-party Consent Management Platform (CMP) to load"), or `[]` plus `updateConsents()` later; call `updateConsents()` from the CMP's change handler, "directly from your OneTrust or custom consent management provider's code" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html).
+- Third-party (verify in the vendor's docs): CMPs typically expose a read of the stored decision, a callback or DOM event on first decision and change, sometimes a ready signal; some implement the IAB TCF API. Wrap them in a three-member adapter (`provider`, `read()` → `true | false | null`, `subscribe(cb)`); keep all vendor code inside it.
+- Map exactly one privacy-approved category/purpose to `Tracking`, never an always-granted one; always let the Promise settle (stored decision, first decision, or `[]` after a ceiling) (inference). `[]` is documented only as a direct `consents` value for an undecided user [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html); the Promise "must resolve with an array of consent data objects" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html), so test a Promise that resolves `[]`, or resolve with an explicit `Opt Out` after privacy sign-off (it records an opt-out for undecided visitors). Adapter code: [sitemap-templates.md](sitemap-templates.md) §2–§3.
 
 ## 4. Identity
 
@@ -99,7 +115,7 @@ getConsents(): ConsentWithMetadata[]   // [{ consent: {...}, lastUpdatedTime: Da
 Sources: [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html)
 
 - The beacon injects `category`, `dateTime`, `deviceId` (PK of profile events), `eventId` (PK of engagement events), `eventType`, `sessionId` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html). Doc payloads show identical 16-hex `deviceId`/`sessionId` values [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/track-personalization-engagement.html); `deviceId` == `anonymousId` is implied by format only (UNVERIFIED).
-- **Automatic anonymous identity event**: when the anonymous id changes (first visit, `setAnonymousId` with a new value, `resetAnonymousId`) and the first action event after the change carries no `user.attributes.eventType`, the SDK sends a minimal `identity` event with `isAnonymous: true` on the first `onEventSend` batch; nothing is sent if the visitor leaves first; the record can later be merged or overwritten [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-user-data.html).
+- **Automatic anonymous identity event**: when the anonymous id changes (first visit, `setAnonymousId` with a new value, `resetAnonymousId`) and the first action event after the change carries no `user.attributes.eventType`, the SDK sends a minimal `identity` event with `isAnonymous: true` on the first `onEventSend` batch; nothing is sent if the visitor leaves first; the record can later be merged or overwritten [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-user-data.html). Consequence (inference): don't attach `user.attributes` (e.g. `partyIdentification`) to the first page interaction via `onActionEvent` on a new device, since that suppresses the automatic identity event; send known-user attributes in a separate `sendEvent` after `initSitemap`, once per user per session, and only when opted in.
 - **Profile events**: `sendEvent({ user: { attributes: { eventType, ... } } })`. `eventType` Required; starts with a letter; alphanumerics/underscores only; no trailing or consecutive `_`; ≤80 chars. Send only when attributes are first discovered or change; `interaction` + `user` can share one call [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-user-data.html).
 
 | `user.attributes.eventType` | Attributes (translation table) |
@@ -157,6 +173,7 @@ Sources: [src](https://developer.salesforce.com/docs/data/salesforce-interaction
 
 Source: [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html)
 
+- **Commerce events are documented**: `CartInteractionName.AddToCart` / `RemoveFromCart` (`lineItem: { catalogObjectType, catalogObjectId, quantity }`), `ReplaceCart` (`lineItems`, `[]` = empty cart) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-cart-interaction.html); `OrderInteractionName.Purchase` / `Return` / `Cancel` / `Preorder` / `Exchange` / `Ship` / `Deliver` (`order: { id, totalValue }`, optional `currency`, `lineItems`) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-order-interaction.html). Full format table, landing DMOs and doc quirks: [sitemap-templates.md](sitemap-templates.md) §5.
 - Required on every translated event: `category`, `dateTime` (`yyyy-MM-dd'T'HH:mm:ss.SSS'Z'` only; used for partitioning), `deviceId`, `eventId`, `eventType` (schema `developerName`), `sessionId`, `interactionName`. Custom `attributes.*` → `attributeCustomFieldN` and must be added to the schema manually [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html).
 - Catalog constants: `SalesforceInteractions.CatalogObjectInteractionName.ViewCatalogObject` = `View Catalog Object`; also `ViewCatalogObjectDetail`, `QuickViewCatalogObject`, `ShareCatalogObject`, `ReviewCatalogObject`, `CommentCatalogObject`, `FavoriteCatalogObject` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-catalog-interaction.html).
 - Custom events: define in the schema first (a deployed custom schema can't be edited or have fields deleted); omitted `eventType` defaults to `name`; field names camel-case (`attributes.myNum` → `attributesMyNum`) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-custom-events.html).
@@ -164,6 +181,7 @@ Source: [src](https://developer.salesforce.com/docs/data/salesforce-interactions
 
 ## 6. Single-page applications (SPA)
 
+- Applies only when routes change without a full page load. Multi-page / server-rendered sites re-run the sitemap on every load and need none of this section; never copy the SP example's `/* === SPA Websites === */` polling block into them [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html). The copy-ready add-on is in [sitemap-templates.md](sitemap-templates.md) §4.
 - `reinit(): void` "forces the SDK to reinitialize its state and re-run sitemap evaluation … to match the new virtual page" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html).
 - Documented pattern: inside `init().then()`, poll `window.location.href` and call `reinit()` on change — SP example 500 ms after `initSitemap` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html); Data 360 example 200 ms, set up before `initSitemap` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html). Sitemap Builder `Settings` configures "how the sitemap reacts to URL changes" [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_qs_sitemap_bldr_tabs.htm&release=264.0.0&type=5).
 - Re-evaluation re-runs `isMatch`; since a matched config's `interaction` is sent automatically, a new page interaction with the new `sourcePageType` follows (inferred).
@@ -230,6 +248,16 @@ Source: [src](https://developer.salesforce.com/docs/marketing/einstein-personali
 
 ## 9. Frontend frameworks: content zone handlers
 
+| Architecture | Slot DOM owner after load | Use | `reinit()` |
+| --- | --- | --- | --- |
+| Multi-page, server templates (vanilla JS or light enhancements) | HTML, not re-rendered | WPM `Replace an Element` on an `#id` placeholder, or a content zone | No |
+| SSR + hydration (Next.js, Nuxt, SvelteKit, Remix, Angular SSR) | Framework | Content Zone Handler in a client component | On client-side navigations |
+| SPA | Framework | Content Zone Handler | Yes |
+| Islands / partial hydration | HTML or island | Element targeting outside islands; handler inside | Only with client-side routing |
+| Server-side render of the decision | Server | Authenticated Decisioning API (§10); you own rendering and view/click events | n/a |
+
+Basis: SDK DOM manipulation "can conflict with the virtual DOM or rendering strategies of modern frameworks" [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-personalization-modern-frontend-frameworks.html). Row assignments are inference. Handler registration timing relative to the decision response is undocumented; test late-mounting components.
+
 ```ts
 SalesforceInteractions.Personalization.Config.ContentZoneHandler.set(name: string, {
   onReady: (content: string, metadata: ContentZoneHandlerMetadata) => void,  // Required; runtime render
@@ -263,6 +291,7 @@ Sources: [src](https://developer.salesforce.com/docs/marketing/einstein-personal
 - `context` and `personalizationPoints` Required; on duplicate keys across `context`/`events`/`profile`, `context` wins. For Accounts replace `individualId` with `profileId` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html).
 - `personalizationPoints[]`: `id` or `name`; all points in one request must use the same profile data graph; `decisionId` forces a decision without rule evaluation (testing).
 - `profile` (Hot Layer Profile) skips the Data 360 lookup. `executionFlags`: `TestMode` (nothing recorded to the lake), `ContextOnly` (no profile lookup), `EnableDiagnostics`. `requestUrl` enables UTM parsing; `customContextVariable` feeds recommendation filters and isn't recorded; context is logged to the Personalization Record DLO [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html).
+- **No profile available (anonymous no-JS pages, edge or server renders):** send `executionFlags: ["ContextOnly"]` ("a call must not look up a profile") and decide on context: `requestUrl` (UTM), `anchorId`/`anchorType`, `customContextVariable`. Profile-based rules and recommender filters then can't match (inference). For experiments without a lookup, `context.unifiedIndividualId` is "only used to enable accurate experimentation partitioning"; `correlationId` attributes one engagement to several requests [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html). On the web, `individualId` is "generated by the SDK" and can't be overridden [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-dynamic-context-variables.html); a server-generated anonymous ID that later joins the web profile is undocumented.
 - Response: `{ personalizations: [{ personalizationId, personalizationPointId, personalizationPointName, data: [{ personalizationContentId, … }], attributes: {…}, diagnostics }], diagnostics, requestId }`; `diagnostics` returned only on authenticated requests [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html). Unauthenticated calls log codes to the PersonalizationLog entry; codes resemble but aren't HTTP codes; `decisionId` on an unauthenticated call → `408 SPECIFIED_DECISION_NOT_SUPPORTED` and HTTP `400` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-pipeline-diagnostics.html).
 - Mobile SDK response model adds optional `decisionId` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalize-mobile-experiences-android.html).
 - (Field-observed, undocumented): the Web SDK calls `POST https://<TENANT_ENDPOINT>/personalization/decisions`; responses carry `decisionId` (`9pb…`) and `metadata: {}` per personalization.
@@ -291,59 +320,12 @@ Sources: [src](https://developer.salesforce.com/docs/marketing/einstein-personal
 | `Engagement Tracking: not available (V1) — skipping listener setup` | Possibly no connector-level Personalization Engagement Tracking config |
 | `Content Zone … has no Selector` | Zone can't be a DOM target for `Replace a Content Zone`/flicker hiding; harmless for overlay- or handler-only zones |
 
-## Annotated SP sitemap (documented APIs only)
+## Sitemap templates
 
-```js
-// 1) Module config first; must precede init()
-SalesforceInteractions.Personalization.Config.initialize({
-  customFlickerDefenseConfig: { redisplayTimeoutMilliseconds: 2000, renderPersonalizationAfterTimeoutElapsed: false },
-});
-// 2) init: consents Promise resolved from your CMP (no consent = no tracking), SP data space, shared cookie domain
-SalesforceInteractions.init({
-  cookieDomain: "example.com",
-  personalization: { dataspace: "default" },
-  consents: new Promise((resolve) => {
-    window.addEventListener("cmp:decision", (e) => resolve([{   // hypothetical CMP event
-      provider: "<CMP_NAME>",
-      purpose: SalesforceInteractions.ConsentPurpose.Tracking,
-      status: e.detail.granted ? SalesforceInteractions.ConsentStatus.OptIn : SalesforceInteractions.ConsentStatus.OptOut,
-    }]), { once: true });
-  }),
-}).then(() => {
-  const { listener, resolvers, CatalogObjectInteractionName } = SalesforceInteractions;
-  SalesforceInteractions.initSitemap({
-    global: {
-      locale: "en_US",
-      contentZones: [{ name: "global_popup" }],                  // selector-less zone: overlays/handlers only
-      listeners: [listener("submit", "form#login", () => {
-        SalesforceInteractions.sendEvent({ user: { attributes: {   // known-user key for real-time IR
-          eventType: "partyIdentification",
-          IDName: "<ID_NAME>", IDType: "<ID_TYPE>",                // field name per your schema (IDName vs IDNameWeb)
-          userId: window.knownUserId } } });                      // <KNOWN_USER_ID> source on your site
-      })],
-      onActionEvent: (event) => event,                          // must return the event
-    },
-    pageTypeDefault: { name: "default", interaction: { name: "default", eventType: "userEngagement" } },
-    pageTypes: [                                                // first match is selected: most specific first
-      { name: "home", isMatch: () => window.location.pathname === "/",
-        interaction: { name: "home view", eventType: "userEngagement" },   // eventType must exist in schema
-        contentZones: [{ name: "hero", selector: "#personalization-zone-hero" }] },
-      { name: "product", isMatch: () => /^\/product\//.test(window.location.pathname),
-        interaction: { name: CatalogObjectInteractionName.ViewCatalogObject,             // → eventType "catalog"
-          catalogObject: { type: "Product", id: resolvers.fromSelectorAttribute(".product", "data-id"),
-                           attributes: { brand: resolvers.fromMeta("brand") } } },      // custom fields: add to schema
-        contentZones: [{ name: "recs", selector: "#personalization-zone-recs" }] },
-    ],
-  });
-  // 3) SPA: re-run sitemap evaluation on virtual navigation
-  let currentUrl = window.location.href;
-  setInterval(() => {
-    if (currentUrl !== window.location.href) { currentUrl = window.location.href; SalesforceInteractions.reinit(); }
-  }, 500);
-});
-```
-
-- Sources: [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-sitemap.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html) [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-content-zones.html). `<ID_NAME>`/`<ID_TYPE>` must match your real-time match rule [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_real_time_identity_resolution_for_einstein_personalization.htm&release=264.0.0&type=5). The SP docs mark their own example "for reference only".
+Copy-ready templates are in [sitemap-templates.md](sitemap-templates.md):
+- **§2 Starter sitemap — multi-page / server-rendered site (primary)**: module config → CMP adapter → `init` (`consents` Promise, `cookieDomain`, `personalization.dataspace`) → `initSitemap` with mutually exclusive boolean `isMatch` page types (order confirmation, checkout, cart, item detail, category, home), `ViewCatalogObject` with `anchorId`/`anchorType` context, add-to-cart and sign-out listeners, then separate page-load `ReplaceCart`, `Purchase` (de-duplicated) and `partyIdentification` events. No polling, no `reinit()`.
+- **§3 CMP-agnostic consent adapter**; **§4 optional SPA add-on** (client-side routing only); **§5 catalog/cart/order/identity event formats** with landing DMOs.
+- The SP example sitemap is "for reference only", hard-codes `OptIn`, and its polling block is labelled "SPA Websites" [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html). Content zone syntax: [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-content-zones.html).
 
 ## MCP confusion traps
 
@@ -365,6 +347,7 @@ SalesforceInteractions.init({
 ## Gaps and uncertainties
 
 - `bfcacheAutoReinit`: undocumented; semantics inferred.
+- Tag loading (`async`/`defer`, tag managers, CSP host lists) and content zone handler registration timing: undocumented (§1, §9).
 - `init` options: the Data 360 table lists only `consents`, `cookieDomain`; `personalization` appears only in SP pages; `dataCloud.timeTracking` on its own page.
 - `reinit` coverage (re-fetch, flicker, WPM re-render) and whether `init()` resolves before a pending `consents` Promise: unstated.
 - Web consent pending state: no documented `Pending`/queue; drop-not-queue is observed only. Consent Log `opt-in` vs documented `Opt In`: observed only.
@@ -381,15 +364,15 @@ SalesforceInteractions.init({
 SP (authoritative) — Help `https://help.salesforce.com/s/articleView?id=mktg.<slug>.htm&release=264.0.0&type=5`:
 - `persnl_setup_websdk_ep_module`, `persnl_qs_configure_website_connector`, `persnl_qs_sitemap_building`, `persnl_qs_sitemap_bldr_tabs`, `persnl_qs_sitemap_bldr_modes`
 - `persnl_wpm_access_web_personalization_manager`, `persnl_wpm_prerequisites`, `persnl_wpm_use_predefined_templates`, `persnl_wpm_manually_personalize_page_elements`, `persnl_wpm_export_and_publish`, `persnl_wpm_preview_the_experience`, `persnl_experience_web`, `persnl_experience_mobile_publish`, `persnl_experience_mobile_engagement_tracking`
-- `persnl_setup_real_time_identity_resolution_for_einstein_personalization`, `persnl_qs_add_recommended_rules_to_ir_ruleset`, `persnl_setup_data_graphs_using`, `persnl_personalization_point_real_time_profile_data_graphs`, `persnl_personalization_point_standard_profile_data_graphs`
+- `persnl_setup_real_time_identity_resolution_for_einstein_personalization`, `persnl_setup_profile_dg_for_max_rev`, `persnl_qs_add_recommended_rules_to_ir_ruleset`, `persnl_setup_data_graphs_using`, `persnl_personalization_point_real_time_profile_data_graphs`, `persnl_personalization_point_standard_profile_data_graphs`
 
 SP developer guide — `https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/<page>.html`:
 - `personalize-web-experiences`, `integrate-salesforce-interactions-sdk`, `example-sitemap`, `request-personalization-through-sitemap`, `configure-web-personalization`, `initialize-einstein-personalization-module`, `configure-flicker-defense`, `set-up-content-zones`, `track-personalization-engagement`, `integrate-personalization-modern-frontend-frameworks`
 - `decisioning-api-reference`, `decisioning-api-request-personalization`, `decisioning-api-authenticated-request`, `decisioning-api-pipeline-diagnostics`, `show-personalized-recommendations-in-flows`, `batch-personalization-output-dmo`, `personalize-mobile-experiences-android`
 
 Interactions SDK / Data 360 (authoritative) — `https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-<page>.html`:
-- `initialization`, `consent`, `consent-data`, `identity`, `api-reference`, `sitemap`, `event-structure`, `user-data`, `translating-sdk-events-to-web-connector-schemas`, `custom-events`, `catalog-interaction`, `integration`, `debugging`, `time-tracking`, `salesforce-interactions-web-sdk`, `salesforce-cdp-module-of-the-salesforce-web-sdk`
-- https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-salesforce-web-sdk.html
+- `initialization`, `consent`, `consent-data`, `identity`, `api-reference`, `sitemap`, `event-structure`, `user-data`, `translating-sdk-events-to-web-connector-schemas`, `custom-events`, `catalog-interaction`, `cart-interaction`, `order-interaction`, `integration`, `debugging`, `time-tracking`, `salesforce-interactions-web-sdk`, `salesforce-cdp-module-of-the-salesforce-web-sdk`
+- https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-salesforce-web-sdk.html, https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-mobile-sdk-mappings-for-engagement-events.html
 - https://developer.salesforce.com/docs/data/data-cloud-engagement-mobile-sdk/guide/c360a-api-engagement-mobile-sdk-consent-management-v2.html (and `-v3`)
 - Data 360 Help `https://help.salesforce.com/s/articleView?id=data.<slug>.htm&release=264.0.0&type=5`: `c360_a_web_mobile_app_connector`, `c360_a_data_stream_schedule`, `c360_a_identity_resolution_real_time`, `c360_a_identity_resolution_configure_real_time_matching`
 
