@@ -110,7 +110,8 @@ Each fact is detailed and cited in the linked reference.
 
 ### Web SDK and consent — [web-sdk-and-sitemap.md](references/web-sdk-and-sitemap.md)
 
-- **Consent:** without a consent configuration, SP treats every visitor as opted out. The Web SDK consent purpose is `Tracking`; MCP's `Personalization` purpose doesn't apply.
+- **Consent:** the Web SDK stores and sends nothing until it receives an explicit `Opt In`. `consents` is required in `init`, and `consents: []` means no tracking. MCP instead tracks by default.
+  - The only documented purpose is `Tracking`; MCP's `Personalization` purpose doesn't apply.
 - **Initialization order:** `SalesforceInteractions.Personalization.Config.initialize(...)` must run **before** `SalesforceInteractions.init(...)`.
 - **Flicker defense defaults:** `redisplayTimeoutMilliseconds: 2000` and `renderPersonalizationAfterTimeoutElapsed: false`. A response that arrives after the timeout is not rendered.
 - **`init` options:** documented options are `consents`, `cookieDomain` and, for SP, `personalization.dataspace`. Treat any other option as undocumented.
@@ -131,7 +132,16 @@ Each fact is detailed and cited in the linked reference.
 - **Real-time graph joins:** real-time profile data graphs join child objects only through the parent object's primary key. Design loyalty and other profile data to relate to Individual or Unified Individual, not through Party Identification values.
 - **Targeting context:** targeting rules can use request context as well as profile data: `Scheduling`, `Source`, `UTM Parameters` and `Visit Context` (page type).
 - **Decision evaluation:** only `Live` decisions (not `Draft`) are evaluated, in priority order, and one decision is returned per point.
-- **No default decision:** when nothing qualifies, the response reports `NO_DECISION_QUALIFIED`. Build an explicit catch-all decision if the slot must never be empty.
+- **No default decision:** when nothing qualifies, an SP personalization point returns no decision and the diagnostic `NO_DECISION_QUALIFIED`. Build an explicit catch-all decision if the slot must never be empty. Marketing Cloud Next message dynamic content, unlike SP points, does have a default variation.
+- **Documented limits:**
+  - 25 decisions per point
+  - 50 targeting conditions per decision
+  - 10 recommenders per org
+  - 12 recommendations returned by default, 24 maximum
+  - 60,000 recommendation requests per minute per tenant
+  - 20 active batch jobs per org
+
+  The full table is in [platform-and-setup.md](references/platform-and-setup.md).
 
 ### WPM, campaigns, experiments — [wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md)
 
@@ -147,9 +157,9 @@ Each fact is detailed and cited in the linked reference.
 
 - **Signals and the Personalization Log:** a signal can be an attribution funnel stage only if it has an active relationship to the Personalization Log DMO. Website Engagement has no personalization point field, so filter by point through the Personalization Log relationship.
 - **Web connector schema:** the relationship joins Website Engagement `PersonalizationContentId` to the Personalization Log `Id`. If the event schema lacks `personalizationContentId`, or it isn't mapped to the Website Engagement DMO, views and clicks can't be attributed.
-- **Funnels vs CTR:** attribution funnels count **individuals** whose next stage happened within the window. Funnel conversion differs from raw event click-through rate (CTR).
+- **Funnels vs CTR:** attribution funnels are individual-based. The entrance stage counts individuals, and later stages count conversions within the attribution window. Funnel conversion differs from raw event click-through rate (CTR).
 - **Custom attribution:** 2–4 stages, `First Touch` or `Last Touch`, per-org and per-data-space model limits. Predefined attribution needs the Product Browse, Shopping Cart and Product Order engagement objects.
-- **CRM Analytics:** Pipeline Intelligence requires CRM Analytics. The Attribution Intelligence `Analytics` tab has no documented CRM Analytics dependency.
+- **CRM Analytics:** Pipeline Intelligence explicitly requires CRM Analytics. For the Attribution Intelligence `Analytics` tab, the dependency is neither documented nor excluded; its only listed permission is `Personalization Intelligence User`. Confirm in the target org.
 - **Compound metrics:** only one COUNT metric divided by another (`Divide By`).
 - **Reporting CTR:** Data 360 reports on calculated insights can't use formulas. Compute CTR in calculated insight SQL, Query Editor or Tableau.
 
@@ -166,6 +176,7 @@ Apply these unless the user's constraints say otherwise; explain the trade-off w
 - **Identity:** `partyIdentification` `IDName`/`IDType` must match the identity resolution match rule exactly.
   - Never send placeholder values ("NA", "null") as identifiers.
   - Call `resetAnonymousId()` before binding a different member on the same device.
+  - Real-time identity resolution runs only `Exact` or `Exact Normalized` match rules. Fuzzy rules take effect in the next scheduled run.
 - **Templates:**
   - Scope CSS class names to the template.
   - Size from the container: `width: 100%; align-self: stretch`, and container queries rather than viewport breakpoints.
