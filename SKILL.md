@@ -237,6 +237,7 @@ Seen in real implementations and absent from the docs, so re-test after SDK upgr
 
 - **Consent adapter:** read the CMP's live state with its persisted cookie as fallback, and match categories as exact tokens. Treat an empty or unparseable answer as "not decided yet", and size the consent ceiling from measured cold loads (web §1.1).
 - **Consent handler:** call `updateConsents()` synchronously first, every time. Decide the first-view replay only from `getConsents()`, and write "sent" memos only after `Opt In` (web §1.2).
+- **Consent and sign-in freshness:** the profile upsert sent with the sign-in bind doesn't reach the unified profile, so re-send it a few seconds later. Refresh the page's decisions once after a consent change, a new sign-in or an in-place sign-out, through one debounced timer, and label the refresh page event through `onActionEvent`. Gate what is displayed on the browser's live CMP consent with an `<html>` attribute and CSS (web §1.2–§1.3, §2.4).
 - **Append-only data layers:** read the newest entry, and suppress re-binding positionally after logout, never with a timer. Persist the bound user in `localStorage` to detect user switches (web §2.2–§2.3).
 - **After `resetAnonymousId()`:** the new device is a new Individual, so re-send the profile attributes decisions depend on, and key memos to `getAnonymousId()` (web §2.4).
 - **Page types classify pages; decisions target people:** never split page types by consent or audience, and match paths on segment boundaries (web §3.1).

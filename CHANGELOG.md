@@ -4,6 +4,18 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-28
+
+### Added
+
+- Field-verified consent and sign-in freshness lessons:
+  - `references/field-guide-web.md` §2.4: the profile upsert sent with the sign-in bind doesn't reach the unified profile, so re-send it once the device is linked; refresh decisions after a new sign-in or an in-place sign-out, with the cases to skip; label refresh page events through `onActionEvent` by returning a copy.
+  - §1.2: refresh decisions once after a consent change, debounced against duplicate CMP events.
+  - §1.3: gating display on the browser's live consent, upgraded from inference to verified (fails closed, no `personalization-view` while hidden).
+  - `references/field-guide-data.md` §1.2: test members accumulate devices past the data graph's 100-record default, and the unified value is reconciled across all of them.
+  - `references/troubleshooting.md`: a "consent change or sign-in isn't reflected in the decision" symptom.
+  - A `SKILL.md` summary line.
+
 ### Changed
 
 - Author named as Lior Omri in `LICENSE`, the README and `SKILL.md` metadata.
@@ -147,7 +159,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.4...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.1...v1.4.2
