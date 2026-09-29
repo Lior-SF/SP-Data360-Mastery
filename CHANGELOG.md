@@ -4,6 +4,16 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-29
+
+### Changed
+
+- `references/field-guide-data.md` §1.4:
+  - `Last Updated` picks the latest record by Last Modified Date, needs that field mapped from the stream, and breaks ties alphabetically.
+  - Map the web `identity` event's `dateTime` to Individual Last Modified Date as well as Created Date, as the Data 360 Web SDK connector mapping does. Without it, the unified consent showed the alphabetically first value. With it, the real-time root followed the latest browser.
+  - `Last Updated` compares records and has no Ignore Empty Values, so check that a nightly-refreshed CRM record without the field can't blank it, or use Source Priority with the web stream first.
+- `references/troubleshooting.md`: read the real-time graph record with the **Data Cloud Get Data Graph By Lookup** Flow action (lookup key formats that worked), and compare Query Editor, the Data Graph view and the real-time lookup when they disagree.
+
 ## [1.5.0] - 2026-09-28
 
 ### Added
@@ -159,7 +169,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.2...v1.4.3
