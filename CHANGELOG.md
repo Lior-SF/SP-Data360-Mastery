@@ -4,6 +4,16 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-09-29
+
+### Changed
+
+- `references/field-guide-web.md` §1.3 (consent categories as a profile attribute):
+  - A text **Contains** condition on the root consent field is available and works in the decision wizard.
+  - Put the consent field on the Unified Individual root and target that field. The related Individual node lists every browser's row, so a condition there matches if any browser ever granted the category.
+  - Step 5 points to the `dateTime` → Last Modified Date mapping that `Last Updated` needs.
+  - The pattern is verified end to end: a consent change on one browser reached the real-time root value and the decision within seconds.
+
 ## [1.5.1] - 2026-09-29
 
 ### Changed
@@ -169,7 +179,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.3...v1.4.4
