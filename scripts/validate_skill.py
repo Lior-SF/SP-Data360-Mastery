@@ -4,6 +4,8 @@
 Checks:
   * SKILL.md frontmatter (name, description) and size limits
   * every relative Markdown link resolves; every reference file is linked from SKILL.md
+    and listed in the README, CONTRIBUTING and the issue template
+  * cross-references such as `decisioning.md §1.6` point at real numbered headings
   * publication safety: credentials, Data 360 tenant hosts, org and record IDs,
     and customer terms supplied privately (BANNED_TERMS env var or .customer-terms.txt)
   * Marketing Cloud Personalization (MCP) pages are cited only in references/sp-vs-mcp.md,
@@ -217,6 +219,54 @@ def check_mcp_citations(report: Report) -> None:
                 )
 
 
+def check_reference_listings(report: Report) -> None:
+    """Every reference file must appear in the README, CONTRIBUTING and the issue template."""
+    listings = [
+        ROOT / "README.md",
+        ROOT / "CONTRIBUTING.md",
+        ROOT / ".github" / "ISSUE_TEMPLATE" / "incorrect-fact.yml",
+    ]
+    for listing in listings:
+        if not listing.exists():
+            continue
+        text = "\n".join(read_lines(listing))
+        for path in sorted(REFERENCES_DIR.glob("*.md")):
+            if f"references/{path.name}" not in text:
+                report.error(listing, 0, f"does not list references/{path.name}")
+
+
+def heading_numbers(path: Path) -> set:
+    numbers = set()
+    for line in read_lines(path):
+        match = HEADING_PATTERN.match(line)
+        if match:
+            number = re.match(r"(\d+(?:\.\d+)*)[.\s]", match.group(2) + " ")
+            if number:
+                numbers.add(number.group(1))
+    return numbers
+
+
+def check_section_references(report: Report) -> None:
+    """A cross-reference such as `decisioning.md §1.6, §7.3` must point at real numbered headings."""
+    references = {p.stem: p for p in REFERENCES_DIR.glob("*.md")}
+    headings = {stem: heading_numbers(path) for stem, path in references.items()}
+    section_run = r"((?:§\s*\d+(?:\.\d+)*(?:\s*(?:,|and)\s*)?)+)"
+    patterns = [
+        re.compile(r"\]\((?:\.\./|references/)?([\w-]+)\.md(?:#[^)]*)?\)[^§\n]{0,40}?" + section_run),
+        re.compile(r"(?<![\w/-])([\w-]+?)(?:\.md)?\s*" + section_run),
+    ]
+    for path in iter_markdown_files():
+        for number, line in prose_lines(path):
+            for pattern in patterns:
+                for match in pattern.finditer(line):
+                    stem = match.group(1)
+                    if stem not in headings:
+                        continue
+                    for section in re.findall(r"§\s*(\d+(?:\.\d+)*)", match.group(2)):
+                        if section not in headings[stem]:
+                            report.error(path, number, f"{stem}.md has no numbered heading §{section}")
+
+
 def load_customer_terms(terms_file: Path) -> List[str]:
     raw: List[str] = []
     env_value = os.environ.get("BANNED_TERMS", "")
@@ -269,6 +319,8 @@ def main() -> int:
     check_skill_file(report)
     check_links(report)
     check_reference_coverage(report)
+    check_reference_listings(report)
+    check_section_references(report)
     check_mcp_citations(report)
     term_count = check_publication_safety(report, args.terms_file.resolve())
 

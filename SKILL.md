@@ -1,20 +1,20 @@
 ---
 name: sp-data360-mastery
 description: >-
-  Expert, citation-backed knowledge of Salesforce Personalization (SP), the
-  Data 360-native personalization product in Marketing Cloud Next (formerly
-  Einstein Personalization): setup, permissions and licensing, the Salesforce
+  Expert, citation-backed knowledge of Salesforce Personalization (SP), the Data
+  360-native personalization product in Marketing Cloud Next (formerly Einstein
+  Personalization): setup, permissions and licensing, the Salesforce
   Interactions Web SDK and sitemap, consent and identity, profile and item data
-  graphs, personalization points, content schemas, decisions, targeting rules,
-  recommenders, Web Personalization Manager (WPM), experience templates,
-  personalization campaigns, experiments, engagement signals, attribution,
-  Personalization Intelligence dashboards, the Decisioning API, the Engagement
-  Mobile SDK, batch decisions, Data 360 SQL reporting, and a playbook for
-  new implementations on any site type or channel. Use when a prompt
+  graphs, calculated and real-time insights, personalization points, content
+  schemas, decisions, targeting rules, recommenders, Web Personalization Manager
+  (WPM), experience templates, campaigns, experiments, engagement signals,
+  attribution, Personalization Intelligence dashboards, the Decisioning API, the
+  Engagement Mobile SDK, batch decisions, Data 360 SQL reporting, and an
+  implementation playbook for any site type or channel. Use when a prompt
   involves Salesforce Personalization, Data 360 or Data Cloud personalization,
   personalization points or decisions, WPM, sitemaps, engagement signals or
-  attribution, and whenever an answer must be kept separate from Marketing Cloud
-  Personalization (MCP, Interaction Studio, Evergage).
+  attribution, and to keep answers separate from Marketing Cloud Personalization
+  (MCP, Interaction Studio, Evergage).
 license: MIT
 metadata:
   author: Lior Omri
@@ -183,9 +183,9 @@ Each fact is detailed and cited in the linked reference.
 
 ### Insights — [calculated-insights.md](references/calculated-insights.md)
 
-- **Pick by freshness:** a calculated insight (CI) is batch and SP says it's "not for real-time Personalization applications". In-session thresholds (cart value, recent clicks, frequency caps) need a real-time insight: Visual Builder only, `Sum` and `Count` only, built on a real-time data graph whose fields you add first. Streaming insights in a personalization graph are undocumented.
+- **Pick by freshness:** a calculated insight (CI) runs on a schedule, and SP calls it "near real time" but "not for real-time Personalization applications". In-session thresholds (cart value, recent clicks, frequency caps) need a real-time insight: Visual Builder only, built on a real-time data graph whose fields you add first. The 264 pages document `Sum` and `Count` only for it, while a 262 release note adds `Min` and `Max`, so check the builder. Streaming insights can be added to a graph, but how a decision evaluates them is undocumented.
 - **A CI reaches a decision only through a data graph.** Base it on a DMO in the graph with that DMO's primary key as a dimension, add it at the graph **root** (never under a child), and keep to 5 measures per CI in the graph. Then it shows under `Calculated Insights` in targeting rules, and in recommender sort and filters.
-- **Freshness is two clocks:** the CI's schedule (1, 6, 12 or 24 hours, or manual) plus the graph's refresh. A CI skips its next run if the last one hasn't finished, and doesn't run at all when its source data is unchanged.
+- **Freshness is two clocks (inference):** the CI's schedule (1, 6, 12 or 24 hours, or manual) plus the graph's refresh. A CI skips its next run if the last one hasn't finished, and doesn't run at all when its source data is unchanged.
 - **Multi-row shape:** the graph carries a CI as one array element per dimension combination. Merge fields need sort criteria to pick a value; how a targeting rule evaluates several rows is undocumented, so key eligibility CIs on the person alone.
 - **Don't build a CI for a value that's already a DMO field**; select it as a direct attribute. Consent categories belong on a profile attribute, not a CI.
 - **Authoring traps:** DMO names are case-sensitive; a dimension alias can't equal the field name; use `ssot__` in the default data space and `{prefix}__` elsewhere; you can't remove or retype fields after creation, so design the schema first.

@@ -4,6 +4,37 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-09-30
+
+Repository review: the text added in 1.4.0 to 1.6.0 was fact-checked independently against the release 264 documentation, and the gaps it found are fixed.
+
+### Fixed
+
+- **Wrong claim from 1.5.1.** `references/field-guide-data.md` §1.4 and `references/field-guide-web.md` §1.3 said the Data 360 Web SDK connector mapping sends the `identity` event's `dateTime` to Individual Last Modified Date. Both documented mappings send it to Created Date only. Mapping it to Last Modified Date as well stays, now labeled as an addition to the documented mappings (Field-observed).
+- `references/calculated-insights.md`, `SKILL.md`, `references/decisioning.md`, `references/sql-cookbook.md`:
+  - Real-time insights: the 264 pages document `Sum` and `Count` only, while a 262 release note adds `Min` and `Max` (June 2026). The skill now states the conflict and says to check the builder.
+  - Streaming insights can be added to a data graph (the skill said this was undocumented). Only how a decision evaluates them is undocumented.
+  - A calculated insight is described as scheduled, which SP calls "near real time", instead of just "batch".
+  - The "profile graph must be real-time" wording on one SP page is flagged as stale, as in `decisioning.md` §1.2.
+  - Citations moved to the pages that state the fact: the limits page (4 nested insights, 30 manual runs per 24 hours, streaming sources), the relative-time page (365+ day windows), the create-graph page (refresh intervals) and the streaming-insight page (the `Processing` status).
+  - Edit rules are split into measures and dimensions. Unlabeled reasoning is tagged `(inference)`.
+- `references/field-guide-data.md`:
+  - The `cdp_sys_*` device fields are documented on the connector mapping page, so they're no longer labeled field-observed.
+  - The same-source Source Priority fallback is stated exactly, and Ignore Empty Values is described as documented only for `Most Frequent` and `Source Priority`.
+- `references/field-guide-web.md` §1.3: the related Individual node behavior is labeled `(inference)`.
+- `references/troubleshooting.md`: lookup-key formats for the `cdpGetDataGraphByLookup` Flow action are documented (an unbracketed example on the Flow page, bracketed forms for Apex and the Query API); only "both bracketed keys worked" is field-observed. Added the documented fallback from a real-time graph to the standard graph, and `noCache`, as a check when a lookup looks stale.
+- `references/platform-and-setup.md`: the `PersonalizationSchema` object reference is now a source for the shared platform-event and sharing objects.
+
+### Added
+
+- `scripts/validate_skill.py` checks that every reference file is listed in the README, `CONTRIBUTING.md` and the "Incorrect or outdated fact" issue template, and that cross-references such as `decisioning.md §1.6` point at real numbered headings.
+
+### Changed
+
+- `SKILL.md` description names calculated and real-time insights.
+- `README.md` adds insights to "Use it for", documents the `(inference)` label and states what was independently verified.
+- `CONTRIBUTING.md` and the issue template list `references/calculated-insights.md`.
+
 ## [1.6.0] - 2026-09-30
 
 ### Added
@@ -38,7 +69,7 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 - `references/field-guide-data.md` §1.4:
   - `Last Updated` picks the latest record by Last Modified Date, needs that field mapped from the stream, and breaks ties alphabetically.
-  - Map the web `identity` event's `dateTime` to Individual Last Modified Date as well as Created Date, as the Data 360 Web SDK connector mapping does. Without it, the unified consent showed the alphabetically first value. With it, the real-time root followed the latest browser.
+  - Map the web `identity` event's `dateTime` to Individual Last Modified Date as well as Created Date. (Corrected in 1.6.1: this isn't what the Data 360 Web SDK connector mapping does; it maps `dateTime` to Created Date only.) Without it, the unified consent showed the alphabetically first value. With it, the real-time root followed the latest browser.
   - `Last Updated` compares records and has no Ignore Empty Values, so check that a nightly-refreshed CRM record without the field can't blank it, or use Source Priority with the web stream first.
 - `references/troubleshooting.md`: read the real-time graph record with the **Data Cloud Get Data Graph By Lookup** Flow action (lookup key formats that worked), and compare Query Editor, the Data Graph view and the real-time lookup when they disagree.
 
@@ -197,7 +228,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.0...v1.5.1

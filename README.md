@@ -8,6 +8,7 @@
 - **Use it for:**
   - jump-starting a new customer (discovery, architecture by site type and channel, setup order, go-live)
   - Web SDK and sitemaps, WPM, decisions and recommenders
+  - data graphs and calculated, streaming and real-time insights
   - identity resolution, consent, attribution and reporting SQL
   - troubleshooting
 - **Install (shared folder):**
@@ -136,7 +137,8 @@ Use the path you cloned into. Releases are tagged (`v1.0.0`, …); see [CHANGELO
 - **`(UNVERIFIED)`** — useful, but not confirmed in documentation.
 - **`(Field-observed, undocumented)`** — behavior seen in real implementations but absent from documentation. Re-test after SDK upgrades.
 - **Sources:** restricted to Salesforce Personalization help, the Salesforce Personalization developer guide, the Salesforce Interactions SDK (Data 360) guide, Data 360 help, and release notes. MCP pages are cited only to explain differences.
-- **Verification:** each reference file was researched from the documentation, then independently re-verified claim by claim, including an explicit check that every cited page belongs to Salesforce Personalization rather than MCP.
+- **`(inference)`** — reasoned from the cited documentation, not stated by it.
+- **Verification:** each reference file was researched from the documentation, then independently re-verified claim by claim, including an explicit check that every cited page belongs to Salesforce Personalization rather than MCP. Text added in v1.4.0 to v1.6.0, including the insights guide, got the same independent check in v1.6.1 against the release 264 documentation. Where two official pages disagree, the skill says so instead of picking one.
 
 ## Report a problem or contribute
 

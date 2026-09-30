@@ -40,6 +40,7 @@ Watch the prefixes: `mc_persnl_` is SP, `mc_pers_` is MCP. Prefer the current re
 | Web SDK, sitemap, consent, identity, Decisioning API | `references/web-sdk-and-sitemap.md` |
 | Sitemap templates (multi-page starter, CMP adapter, SPA add-on), event formats | `references/sitemap-templates.md` |
 | Data graphs, points, content schemas, decisions, recommenders | `references/decisioning.md` |
+| Calculated, streaming and real-time insights: which type, SQL rules, adding to a data graph, use in targeting rules, merge fields and recommenders | `references/calculated-insights.md` |
 | WPM, experience templates, campaigns, experiments | `references/wpm-experiences-campaigns.md` |
 | Engagement signals, attribution, analytics, reporting | `references/measurement-and-attribution.md` |
 | Mobile, server-side, batch, Agentforce | `references/mobile-and-channels.md` |
