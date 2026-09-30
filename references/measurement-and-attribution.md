@@ -282,6 +282,8 @@ Inconsistencies (adapt before use):
 
 ## 8. Calculated insights for personalization reporting
 
+Using an insight as a targeting input, merge field or recommender source is covered in [calculated-insights.md](calculated-insights.md); this section is about reporting.
+
 ### 8.1 Authoring rules
 - Create: Data Cloud → `Calculated Insights` tab → `New` → data space → `Calculated Insight` → `Use SQL Authoring` → `Next` → name (API name auto-filled) → SQL (max 131,021 characters) → `Check Syntax` → `Activate` → schedule, start date/time → `Enable`. DMO names are case-sensitive. [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5)
 - Structure: `SELECT <attributes>, <aggregation(measures)> FROM <dmo> [JOIN ...] [WHERE ...] GROUP BY <dimensions>`. A measure is a field inside an aggregation function (at least one required); every other `SELECT` field is a dimension and must be in `GROUP BY`. [src](https://help.salesforce.com/s/articleView?id=data.c360_a_create_a_calculated_insights_sql_function.htm&release=264.0.0&type=5)

@@ -67,8 +67,9 @@ Decide which product the prompt is about before answering.
 | Web SDK deployment, script placement, `init` options, consent (any CMP), identity events, sitemap API, SPA handling, flicker defense, Personalization module, auto view/click tracking, Decisioning API | [references/web-sdk-and-sitemap.md](references/web-sdk-and-sitemap.md) |
 | Copy-ready sitemap: multi-page / server-rendered starter, CMP adapter, optional SPA add-on; catalog/cart/order/identity event formats and landing DMOs | [references/sitemap-templates.md](references/sitemap-templates.md) |
 | Profile/item data graphs, personalization points, content schemas, decisions, targeting rules, merge fields, recommenders, real-time layer | [references/decisioning.md](references/decisioning.md) |
+| Calculated, streaming and real-time insights: choosing a type, CI SQL rules, adding an insight to a profile or item data graph, targeting on insights, merge-field sort criteria, top sellers and co-bought, freshness, limits, cost, "CI missing or stale" | [references/calculated-insights.md](references/calculated-insights.md) |
 | WPM, display methods, experience templates, preview/publish, personalization campaigns, experiments and experimentation APIs | [references/wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md) |
-| Engagement signals and metrics, attribution models, Attribution/Pipeline Intelligence, Tableau, Data 360 reports, calculated insights | [references/measurement-and-attribution.md](references/measurement-and-attribution.md) |
+| Engagement signals and metrics, attribution models, Attribution/Pipeline Intelligence, Tableau, Data 360 reports, reporting calculated insights (views, clicks, CTR) | [references/measurement-and-attribution.md](references/measurement-and-attribution.md) |
 | Engagement Mobile SDK, server-side decisioning, batch decisions for segments, Agentforce, Einstein Studio | [references/mobile-and-channels.md](references/mobile-and-channels.md) |
 | "Is this SP or MCP?", migration, terminology mapping | [references/sp-vs-mcp.md](references/sp-vs-mcp.md) |
 | Anything broken: not rendering, duplicated, zero rows, save errors | [references/troubleshooting.md](references/troubleshooting.md) |
@@ -179,6 +180,15 @@ Each fact is detailed and cited in the linked reference.
 - **Experience templates:** since release 262 they are built in the app, not in the sitemap.
 - **Campaigns:** personalization campaigns support Dynamic Content schemas on the web channel only.
 - **Experiments:** Bayesian, with at least 1,000 participants per cohort (check the Experiment Summary participant totals). The first cohort is the control, and settings are locked after `Start`. `Winner Found` (95% range entirely above control) is a recommendation; roll out manually, or automate through the Experiment Connect API.
+
+### Insights — [calculated-insights.md](references/calculated-insights.md)
+
+- **Pick by freshness:** a calculated insight (CI) is batch and SP says it's "not for real-time Personalization applications". In-session thresholds (cart value, recent clicks, frequency caps) need a real-time insight: Visual Builder only, `Sum` and `Count` only, built on a real-time data graph whose fields you add first. Streaming insights in a personalization graph are undocumented.
+- **A CI reaches a decision only through a data graph.** Base it on a DMO in the graph with that DMO's primary key as a dimension, add it at the graph **root** (never under a child), and keep to 5 measures per CI in the graph. Then it shows under `Calculated Insights` in targeting rules, and in recommender sort and filters.
+- **Freshness is two clocks:** the CI's schedule (1, 6, 12 or 24 hours, or manual) plus the graph's refresh. A CI skips its next run if the last one hasn't finished, and doesn't run at all when its source data is unchanged.
+- **Multi-row shape:** the graph carries a CI as one array element per dimension combination. Merge fields need sort criteria to pick a value; how a targeting rule evaluates several rows is undocumented, so key eligibility CIs on the person alone.
+- **Don't build a CI for a value that's already a DMO field**; select it as a direct attribute. Consent categories belong on a profile attribute, not a CI.
+- **Authoring traps:** DMO names are case-sensitive; a dimension alias can't equal the field name; use `ssot__` in the default data space and `{prefix}__` elsewhere; you can't remove or retype fields after creation, so design the schema first.
 
 ### Measurement — [measurement-and-attribution.md](references/measurement-and-attribution.md)
 

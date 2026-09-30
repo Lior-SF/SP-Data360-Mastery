@@ -73,6 +73,7 @@ Ask in plain language. Mentioning "Salesforce Personalization", "Data 360", "WPM
 | [references/web-sdk-and-sitemap.md](references/web-sdk-and-sitemap.md) | Salesforce Interactions SDK, sitemap, consent, identity, Personalization module, flicker defense, Decisioning API |
 | [references/sitemap-templates.md](references/sitemap-templates.md) | Copy-ready multi-page / server-rendered starter sitemap, CMP-agnostic consent adapter, optional SPA add-on, catalog/cart/order event formats |
 | [references/decisioning.md](references/decisioning.md) | Profile and item data graphs, personalization points, content schemas, decisions, targeting rules, recommenders |
+| [references/calculated-insights.md](references/calculated-insights.md) | Calculated, streaming and real-time insights: types, SQL rules, adding insights to data graphs, targeting and recommender use, freshness, limits, cost, troubleshooting |
 | [references/wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md) | Web Personalization Manager, experience templates, personalization campaigns, experimentation |
 | [references/measurement-and-attribution.md](references/measurement-and-attribution.md) | Engagement signals and metrics, attribution, Pipeline and Attribution Intelligence, reporting |
 | [references/mobile-and-channels.md](references/mobile-and-channels.md) | Engagement Mobile SDK, server-side decisioning, batch decisions, Agentforce, Einstein Studio |

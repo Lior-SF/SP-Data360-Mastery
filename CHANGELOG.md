@@ -4,6 +4,24 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-30
+
+### Added
+
+- `references/calculated-insights.md`, a consolidated guide to calculated, streaming and real-time insights with data graphs in Salesforce Personalization:
+  - which insight type to use, and why a calculated insight isn't for real-time decisions;
+  - SQL authoring rules, data-space naming, schedule behavior, validation, and the narrow edit rules;
+  - real-time insight authoring, approximate time windows, and the data subject rights lag;
+  - adding an insight to a profile or item graph (root only, primary key as a dimension, 5 measures, array shape) and why freshness is two clocks;
+  - use in targeting rules, merge fields (sort criteria) and rule-based recommenders, with the Top Sellers and Co-Bought patterns;
+  - a decision table, limits, cost, a list of behaviors to test before promising them, and a troubleshooting checklist.
+- `references/troubleshooting.md`: new symptom for a calculated insight that is missing, stale or empty in a rule or merge field.
+
+### Changed
+
+- `SKILL.md`: routing row and an "Insights" facts section; the measurement row now covers reporting insights only.
+- `README.md`, `references/decisioning.md`, `references/measurement-and-attribution.md`: pointers to the new guide.
+
 ## [1.5.2] - 2026-09-29
 
 ### Changed
@@ -179,7 +197,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.4.4...v1.5.0
