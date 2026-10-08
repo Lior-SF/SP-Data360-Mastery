@@ -4,6 +4,21 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-08
+
+### Added
+
+- `references/headless-decisions.md`: a guide to reading, QA'ing and writing a personalization point's decisions through the Connect REST API, without the decision wizard.
+  - Endpoints, the v67.0 requirement for `targetingRules`, raw output with `X-Chatter-Entity-Encoding: false`, and the `_HttpMethod` override.
+  - The documented `PersonalizationPointInput` schema: decision, attribute-value and merge-field inputs, enums and constraints.
+  - The rule tree written through `PUT` and rendered in the wizard (Field-verified), with a generic example.
+  - Converting a `GET` response into a `PUT` body: `contextName` and read-only keys are rejected or not in the input schema (Field-verified), plus a small converter script.
+  - A safe workflow (test point, backup, full decision list, `Draft` first, Test Mode check), the QA checklist, and open questions: replace vs merge, priority on write, decision IDs on update.
+
+### Changed
+
+- The decision JSON section added to `references/field-guide-data.md` §3.1 in 1.7.0 moved to the new guide; `field-guide-data.md` §3, `decisioning.md` §6.3 and §6.4, and `SKILL.md` point to it. Its "headless authoring (UNVERIFIED)" note is replaced by the field-verified `PUT` results.
+
 ## [1.7.0] - 2026-10-08
 
 ### Added
@@ -235,7 +250,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.2...v1.6.0

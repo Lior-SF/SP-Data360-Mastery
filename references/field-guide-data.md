@@ -5,7 +5,7 @@
 - Lessons verified in real Salesforce Personalization (SP) implementations that the official docs don't state, on the Data 360 side:
   - identity resolution design
   - website connector schema and mapping traps
-  - targeting on child records, and reading decisions as JSON for QA
+  - targeting on child records
   - measurement and SQL diagnosis
   - credits, rollout and UAT practice
   - privacy decisions that need sign-off
@@ -118,32 +118,7 @@
 - **Batch updates can lag for active visitors.** Session extension "can sometimes delay the availability of lake house updates in your real-time data graph" [src](https://help.salesforce.com/s/articleView?id=data.c360_a_sess_ext_data_graphs.htm&release=264.0.0&type=5). **Do:** test batch-driven changes in a fresh browser session, and send facts that must change mid-session through real-time ingestion.
 - **Isolate the platform from the browser.** Call the point on the authenticated endpoint with `context.individualId` set to a source Individual ID (a web device ID or a CRM ID) and `executionFlags: ["TestMode"]`, so no outputs are recorded to the data lake [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html). A right decision there but a wrong one in the browser means the browser session resolves to an unstitched anonymous ID, not a rule problem.
 - **Prove unification in the browser with a temporary merge field.** Bind a decision attribute to a merge field that shows the unified individual ID; merge fields read attributes of the profile data graph [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_point_decision_add_merge_fields.htm&release=264.0.0&type=5). The same value on two devices shows they unified. Remove it before go-live, and confirm with the link-object query in §4. (Field-observed technique.)
-
-### 3.1 Read and QA a point's decisions as JSON
-
-- **Endpoints.** `POST /personalization/personalization-points` creates a point. `GET`, `PUT` and `DELETE /personalization/personalization-points/{idOrName}` read, update and delete one by record ID or API name [src](https://developer.salesforce.com/docs/platform/connect-rest-api/references/connect-rest-api-personalization). Prefix the resource with `https://<INSTANCE>/services/data/v<VERSION>` [src](https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_building_url.html). **Do:** `GET` the point by `<POINT_API_NAME>` to review every decision at once instead of opening each one in the wizard.
-- **Read raw values.** Responses are minimally HTML entity-encoded by default, so `&` in a URL comes back as `&amp;`. Send `X-Chatter-Entity-Encoding: false` for raw output [src](https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_encoding.html).
-- **Decision shape (Field-observed, undocumented).** Each decision carries `id`, `name`, `label`, `description`, `state`, `targetingRules`, `attributeValues`, `personalizerName`, `criteria`, `url`, and created and modified dates and user IDs. There's no priority field.
-  - `Always (No Rules)` is stored as `targetingRules: null`.
-  - An `attributeValues` entry holds `attributeName`, `value`, `attributeEnum` and `mergeFields[]`. A merge field appears in `value` as `{{{<MERGE_FIELD_NAME>}}}`. Its object holds `name`, `resourceType` (`DirectAttribute` or `RelatedAttribute`), `objectName`, `fieldName`, `objectPath` (from the graph root, empty for a direct attribute), `sortByFieldName`, `sortOrder` and `defaultText`.
-- **Rule tree (Field-observed, undocumented).** `targetingRules` nests three node types:
-
-  | `type` | Keys | Holds |
-  |---|---|---|
-  | `Group` | `operator` (`And` seen), `rules[]` | The root of the match mode |
-  | `Field` | `fieldName`, `predicate`, `contextName` | A condition on the current object |
-  | `RelatedField` | `relatedObjectsPath[]`, `fieldName`, `aggregateFunction`, `predicate`, `preAggregationLogicalOperator`, `preAggregationRules[]` | A condition on related rows |
-
-  - `predicate` is `{operator, type, values[]}`. Stored names seen, a partial list: Text `Equals`, `In`, `Contains`, `HasValue` (empty `values`); Number `GreaterThan`; Boolean `IsTrue`, `IsFalse` (no `values` key).
-  - The §3 "Count greater than 0 with row conditions" pattern is a `RelatedField` with `aggregateFunction: Count`, a `relatedObjectsPath` from the graph root, and the row conditions in `preAggregationRules`. Inside, a `Field` tests the counted object, and a `RelatedField` with `aggregateFunction: AtLeastOne` tests its children, with a path relative to the counted object.
-- **QA checklist.** Run it on the `GET` output before go-live and after each edit:
-  - At most one decision has `targetingRules: null`, and it's the lowest priority. A decision below a catch-all never serves (inference from priority order [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_decision_add.htm&release=264.0.0&type=5)).
-  - Every decision meant to serve is `Live`; `Draft` decisions aren't evaluated (same source).
-  - No `value` has leading or trailing whitespace, and none in a `Live` decision is a placeholder (`Test`, sample URLs) or a diagnostic merge field (§3).
-  - Every `{{{…}}}` token matches a `name` in that attribute's `mergeFields`, and `defaultText` is set wherever an empty value would break the content.
-  - Every `relatedObjectsPath`, `objectPath` and `fieldName` exists in the point's real-time data graph.
-  - Priority: the array matched creation order in one point; whether it reflects priority is (UNVERIFIED). Confirm the order in `Personalization Decisions`.
-- **Headless authoring (UNVERIFIED).** `POST` and `PUT` take a `PersonalizationPointInput` body (same source as Endpoints). Whether the input mirrors the `GET` shape, and whether `PUT` replaces the whole decision list, is undocumented. **Do:** on a non-production point, `GET`, change one decision, `PUT` it back, then `GET` again and diff.
+- **Read, QA and write decisions as JSON.** One Connect API `GET` returns every decision of a point with its full rule tree, and `PUT` writes them back: [headless-decisions.md](headless-decisions.md).
 
 ## 4. Measurement and SQL diagnosis
 
@@ -218,7 +193,7 @@ HAVING SUM(CASE WHEN l.ssot__DataSourceId__c = '<WEB_SOURCE_ID>' THEN 1 ELSE 0 E
 - Cross-object "Match to" behavior is documented in one sentence; its interaction with party-identifier criteria and its inability to be cleared are field-observed only.
 - Undocumented: whether real-time runs honor `Case Sensitive`; whether match-rule objects must be real-time graph nodes; the effect of omitting an `isDataRequired` field; device-enrichment fields on event types the connector mapping page doesn't list (cart item, order item, consent log); All Event Data hoisting; `MetadataUpdate` events; envelope-only Consent Log rows in engagement DMOs.
 - Inferred from primary keys, not stated: `partyIdentification` overwrite per device, and history re-attribution to a second person on the same device.
-- Targeting-rule operators (`Count`, `Is Greater Than`, `contains`) are unpublished; confirm them in the decision wizard. The decision JSON shape, stored operator names and `PUT` semantics in §3.1 are field-observed or unverified.
+- Targeting-rule operators (`Count`, `Is Greater Than`, `contains`) are unpublished; confirm them in the decision wizard. Stored operator names seen through the API are in [headless-decisions.md](headless-decisions.md) §4.
 - Data graph Preview content and the per-audience reporting gap from missing anchors are observed behavior.
 
 ## Sources
@@ -255,16 +230,10 @@ Data 360 integration guide and Interactions SDK:
 - https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-user-data.html
 - https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html
 
-Connect REST API:
-- https://developer.salesforce.com/docs/platform/connect-rest-api/references/connect-rest-api-personalization
-- https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_building_url.html
-- https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_encoding.html
-
 SP developer guide and SP Help:
 - https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-salesforce-interactions-sdk.html
 - https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html
 - https://help.salesforce.com/s/articleView?id=mktg.persnl_references_behavioral_events_data_mapping_ref.htm&release=264.0.0&type=5
-- https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_decision_add.htm&release=264.0.0&type=5
 - https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_targeting_rules_create.htm&release=264.0.0&type=5
 - https://help.salesforce.com/s/articleView?id=mktg.persnl_point_decision_add_merge_fields.htm&release=264.0.0&type=5
 - https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5
