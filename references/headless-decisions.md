@@ -33,7 +33,7 @@
 - **Version:** `targetingRules` on a decision input is available from v67.0, merge-field `fieldName`, `objectPath` and sort settings from v67.0, and `mergeFields` from v66.0 [src](https://developer.salesforce.com/docs/platform/connect-rest-api/references/connect-rest-api-personalization). Use v67.0 or later.
 - **Decisions have no resource of their own.** They're read and written inside the point. `POST` on `/{idOrName}` returns `HTTP Method 'POST' not allowed. Allowed are DELETE,GET,HEAD,PUT` (Field-verified).
 - **How `PUT` treats `decisions[]` (Field-verified):**
-  - **Add:** send every existing decision plus the new one. The new decision is created with a new `id`.
+  - **Add:** send every existing decision plus the new one at the end. The new decision is created with a new `id` and the next priority.
   - **Update in place:** an existing decision sent back with the same `name` keeps its `id` and `createdDate`; only `lastModifiedDate` changes. Reporting tied to the decision ID survives the edit.
   - **No delete by omission:** a body that leaves out an existing decision is rejected as a whole with `You cannot update records for the PersonalizationPoint object.`, and nothing changes. Delete decisions in the UI.
   - **No rules:** a decision sent without `targetingRules` reads back as `targetingRules: null`, the `Always (No Rules)` form.
@@ -81,10 +81,24 @@
   | `Field` | `fieldName`, `predicate` |
   | `RelatedField` | `relatedObjectsPath[]`, `fieldName`, `aggregateFunction`, `predicate`, `preAggregationLogicalOperator`, `preAggregationRules[]` |
 
-  - `predicate` is `{operator, type, values[]}`. Names seen, a partial list: Text `Equals`, `In`, `Contains`, `HasValue` (empty `values`); Number `GreaterThan`; Boolean `IsTrue`, `IsFalse` (no `values` key). Numbers travel as strings (`"0"`).
+  - `predicate` is `{operator, type, values[]}`. Names seen, a partial list: Text `Equals`, `In`, `Contains`, `HasValue` (empty `values`); Number `GreaterThan`, `Equals`; Boolean `IsTrue`, `IsFalse` (no `values` key). Numbers travel as strings (`"0"`).
   - `aggregateFunction` values seen: `Count` on a top-level related condition, `AtLeastOne` on a condition nested in its `WHERE`.
   - The wizard's "Count · Is Greater Than · 0 · WHERE …" ([field-guide-data.md](field-guide-data.md) §3) is a `RelatedField` with `Count`, a `relatedObjectsPath` from the graph root, and the `WHERE` rows in `preAggregationRules`. Inside it, a `Field` tests the counted object, and a `RelatedField` with `AtLeastOne` tests one of its children, with a path relative to the counted object.
   - Each nested `AtLeastOne` condition is evaluated on its own, so two of them can be satisfied by different child rows (inference from the shape; [field-guide-data.md](field-guide-data.md) §3).
+  - **Exclusion: "no child row where X".** A nested condition can't express it: `AtLeastOne` with a negative operator means "at least one row that isn't X", which any other row satisfies. Add a separate top-level `RelatedField` instead, with `aggregateFunction: Count`, the full `relatedObjectsPath` from the graph root down to the child, `fieldName` set to the child DMO's primary key, `predicate` Number `Equals` `["0"]`, and the X conditions in `preAggregationRules`. Written through `PUT`, it displays in the wizard as `Count` · `Is Equal To` · `0` · `WHERE …` (Field-verified). Whether it evaluates true for a profile with no matching rows is (UNVERIFIED).
+
+```json
+{ "type": "RelatedField", "aggregateFunction": "Count", "fieldName": "<CHILD_PRIMARY_KEY>__c",
+  "relatedObjectsPath": ["IndividualIdentityLink__dlm", "ssot__Individual__dlm", "<PARENT_DMO>__dlm", "<CHILD_DMO>__dlm"],
+  "predicate": { "operator": "Equals", "type": "Number", "values": ["0"] },
+  "preAggregationLogicalOperator": "And",
+  "preAggregationRules": [
+    { "type": "Field", "fieldName": "<FIELD>__c",
+      "predicate": { "operator": "In", "type": "Text", "values": ["<EXCLUDED_1>", "<EXCLUDED_2>"] } }
+  ] }
+```
+
+  - The count runs over every row reachable from the root, so with a unified root it covers all source records linked to the person, not one parent record (inference).
 - **Generic example.** The targeting from the wizard reads as: a direct attribute contains a value, and the person has at least one loyalty member with a tier in a list and a child row where a flag is false.
 
 ```json
@@ -161,14 +175,14 @@ Run it on the raw `GET` output before go-live and after every edit:
 - No value has leading or trailing whitespace, and no `Live` decision holds a placeholder (`Test`, sample URLs) or a diagnostic merge field ([field-guide-data.md](field-guide-data.md) §3).
 - Each `{{{…}}}` token matches a merge field `name` on the same attribute, and `defaultText` is set wherever an empty value would break the content [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_point_decision_add_merge_fields.htm&release=264.0.0&type=5).
 - Every `relatedObjectsPath`, `objectPath` and `fieldName` exists in the point's profile data graph; only fields in the graph can be used for targeting [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5).
-- A mistyped condition value saves without an error and never matches (Field-observed). Diff values across sibling decisions.
+- A mistyped condition value saves without an error and never matches (Field-observed). Diff values across sibling decisions, and check the stored values with `SELECT <FIELD>__c, COUNT(*) FROM <DMO>__dlm GROUP BY <FIELD>__c` before writing an `In` list. If the excluded values plus the required one cover every stored value, the exclusion is equivalent to "every row is the required value".
 - Decisions with similar names have the conditions their names imply.
 
 ## Gaps and uncertainties
 
 - Whether `PUT` matches existing decisions by `name` or by position in `decisions[]`. The verified update kept both the same, so keep the order when you edit (UNVERIFIED).
 - Deleting a decision through the API: omission is rejected (§2), and no decision resource is documented.
-- How priority is set through the API. The input has no priority field, and creation order sets the initial priority [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5). In one point read through `GET`, array order matched creation order; whether `decisions[]` order maps to priority on write, or whether reordering the array changes priority, is (UNVERIFIED).
+- How priority is set through the API. The input has no priority field, and creation order sets the initial priority [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5). A decision appended at the end of `decisions[]` got the next priority (Field-verified). Whether reordering the array changes the priority of existing decisions is (UNVERIFIED); change priority in the UI.
 - Keys of `CalculatedInsight` rules, `Or` groups below the root, and operators beyond the partial list in §4 are undocumented. Build one in the wizard, `GET` it, and copy the shape.
 - Whether `Count` with `Equals 0` evaluates true for a profile with no related rows (UNVERIFIED).
 

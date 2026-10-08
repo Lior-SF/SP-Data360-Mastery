@@ -4,6 +4,20 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-08
+
+### Added
+
+- Exclusion targeting, "no child row where X":
+  - `references/field-guide-data.md` §3: why a negative operator nested in a `WHERE` doesn't exclude, and the fix, a separate top-level `Count` · `Is Equal To` · `0` condition.
+  - `references/headless-decisions.md` §4: the JSON form, written through `PUT` and displayed in the wizard (Field-verified), with a generic example. Count runs over every row reachable from the root. Evaluation for a profile with no matching rows stays unverified.
+  - `references/decisioning.md` §6.3 lists the pattern.
+- `references/headless-decisions.md` §7: check stored values with a `GROUP BY` before writing an `In` list.
+
+### Changed
+
+- `references/headless-decisions.md` §2 and gaps: a decision appended at the end of `decisions[]` gets the next priority (Field-verified). Reordering existing decisions through the API is still unverified. Number `Equals` is added to the operators seen.
+
 ## [1.8.1] - 2026-10-08
 
 ### Changed
@@ -256,7 +270,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.1...v1.7.0
