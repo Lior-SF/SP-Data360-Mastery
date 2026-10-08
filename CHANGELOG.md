@@ -4,6 +4,13 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-08
+
+### Added
+
+- `references/field-guide-data.md` §3.1: reading a personalization point's decisions as JSON through the Connect REST API (`GET`/`PUT`/`DELETE /personalization/personalization-points/{idOrName}`, `POST` to create), raw output with `X-Chatter-Entity-Encoding: false`, and a QA checklist for the decisions. The decision shape, the rule tree (`Group`, `Field`, `RelatedField`), the stored operator names seen and the `{{{<MERGE_FIELD_NAME>}}}` token form are labeled field-observed. Headless authoring with `PUT` is labeled unverified.
+- Pointers from `references/decisioning.md` §6.3, §6.4 and the gaps list, and from `SKILL.md`.
+
 ## [1.6.1] - 2026-09-30
 
 Repository review: the text added in 1.4.0 to 1.6.0 was fact-checked independently against the release 264 documentation, and the gaps it found are fixed.
@@ -228,7 +235,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.5.1...v1.5.2

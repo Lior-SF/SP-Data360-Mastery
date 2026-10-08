@@ -153,7 +153,7 @@ Each fact is detailed and cited in the linked reference.
 - **Personalization type:** choosing a type fixes the point's shape: Recommendations (recommender output) or Dynamic Content (attributes stored on the decision; still `ManualContent` in the API).
 - **Real-time graph joins:** real-time profile data graphs join child objects only through the parent object's primary key. Relate profile-extension data (for example tiers, preferences, account or subscription attributes) to Individual or Unified Individual, not through Party Identification values.
 - **Targeting context:** targeting rules can use request context as well as profile data: `Scheduling`, `Source`, `UTM Parameters` and `Visit Context` (page type).
-- **Decision evaluation:** only `Live` decisions (not `Draft`) are evaluated, in priority order, and one decision is returned per point.
+- **Decision evaluation:** only `Live` decisions (not `Draft`) are evaluated, in priority order, and one decision is returned per point. To QA every decision of a point at once, `GET` it through the Connect API ([field-guide-data.md](references/field-guide-data.md) §3.1).
 - **No default decision:** when nothing qualifies, an SP personalization point returns no decision and the diagnostic `NO_DECISION_QUALIFIED`. Build an explicit catch-all decision if the slot must never be empty. Marketing Cloud Next message dynamic content, unlike SP points, does have a default variation.
 - **Documented limits:**
   - 25 decisions per point
