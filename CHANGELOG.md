@@ -4,6 +4,12 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-10-08
+
+### Changed
+
+- `references/headless-decisions.md` §2, §6 and the gaps list: how `PUT` treats `decisions[]` is now field-verified. Sending every existing decision plus a new one adds it. An existing decision sent back under the same `name` keeps its `id` and `createdDate`. A body that omits an existing decision is rejected as a whole (`You cannot update records for the PersonalizationPoint object.`). A decision without `targetingRules` reads back as `null`. Still open: matching by name or position, deleting through the API, and priority on write.
+
 ## [1.8.0] - 2026-10-08
 
 ### Added
@@ -250,7 +256,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.6.0...v1.6.1

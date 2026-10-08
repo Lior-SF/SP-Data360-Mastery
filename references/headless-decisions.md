@@ -32,6 +32,11 @@
 - **URL:** `https://<INSTANCE>/services/data/v67.0` followed by the resource [src](https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_building_url.html). `{idOrName}` takes the record ID or the API name, so `<POINT_API_NAME>` works.
 - **Version:** `targetingRules` on a decision input is available from v67.0, merge-field `fieldName`, `objectPath` and sort settings from v67.0, and `mergeFields` from v66.0 [src](https://developer.salesforce.com/docs/platform/connect-rest-api/references/connect-rest-api-personalization). Use v67.0 or later.
 - **Decisions have no resource of their own.** They're read and written inside the point. `POST` on `/{idOrName}` returns `HTTP Method 'POST' not allowed. Allowed are DELETE,GET,HEAD,PUT` (Field-verified).
+- **How `PUT` treats `decisions[]` (Field-verified):**
+  - **Add:** send every existing decision plus the new one. The new decision is created with a new `id`.
+  - **Update in place:** an existing decision sent back with the same `name` keeps its `id` and `createdDate`; only `lastModifiedDate` changes. Reporting tied to the decision ID survives the edit.
+  - **No delete by omission:** a body that leaves out an existing decision is rejected as a whole with `You cannot update records for the PersonalizationPoint object.`, and nothing changes. Delete decisions in the UI.
+  - **No rules:** a decision sent without `targetingRules` reads back as `targetingRules: null`, the `Always (No Rules)` form.
 - **Read raw values.** Responses are minimally HTML entity-encoded by default, so `&` in a URL comes back as `&amp;`. Send `X-Chatter-Entity-Encoding: false` [src](https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_encoding.html). Writing an encoded value back would store the entity text (inference), so always read raw before you write.
 - **Auth and method override:** Connect REST API uses OAuth 2.0 over HTTPS. A client that can't send `PUT` can `POST` with `?_HttpMethod=PUT` [src](https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_architecture.html); the override is untested on personalization resources (UNVERIFIED).
 
@@ -138,7 +143,7 @@ json.dump(clean(json.load(open(sys.argv[1]))), sys.stdout, ensure_ascii=False, i
 
 1. **Practice on a test point.** Create an empty point with the same content schema and data graph. Copying one known-good decision into it in `Draft` proves the round trip without touching live traffic.
 2. **Back up first.** Save a raw `GET` of the target point before every write.
-3. **Send the whole point.** Build the body from the backup, change only what you mean to, and keep every decision in `decisions[]`. Whether `PUT` replaces the list or merges it is (UNVERIFIED), so an omitted decision may be deleted.
+3. **Send the whole point.** Build the body from the backup, change only what you mean to, and keep every existing decision in `decisions[]`, in its current order. Leaving one out rejects the whole request (§2).
 4. **Write as `Draft`.** `Draft` decisions aren't evaluated [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_decision_add.htm&release=264.0.0&type=5).
 5. **Verify.**
    - Run `GET` again and diff it with the body you sent.
@@ -161,8 +166,9 @@ Run it on the raw `GET` output before go-live and after every edit:
 
 ## Gaps and uncertainties
 
-- `PUT` on a point that already has decisions: replace or merge, and whether an existing decision keeps its `id` when it's sent back by `name`. Decision IDs appear in attribution data (inference), so compare `id` before and after the first write to a live point (UNVERIFIED).
-- How priority is set through the API. The input has no priority field, and creation order sets the initial priority [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5). In one point read through `GET`, array order matched creation order; whether `decisions[]` order maps to priority on write is (UNVERIFIED).
+- Whether `PUT` matches existing decisions by `name` or by position in `decisions[]`. The verified update kept both the same, so keep the order when you edit (UNVERIFIED).
+- Deleting a decision through the API: omission is rejected (§2), and no decision resource is documented.
+- How priority is set through the API. The input has no priority field, and creation order sets the initial priority [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5). In one point read through `GET`, array order matched creation order; whether `decisions[]` order maps to priority on write, or whether reordering the array changes priority, is (UNVERIFIED).
 - Keys of `CalculatedInsight` rules, `Or` groups below the root, and operators beyond the partial list in §4 are undocumented. Build one in the wizard, `GET` it, and copy the shape.
 - Whether `Count` with `Equals 0` evaluates true for a profile with no related rows (UNVERIFIED).
 
