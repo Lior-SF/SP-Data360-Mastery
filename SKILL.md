@@ -155,6 +155,7 @@ Each fact is detailed and cited in the linked reference.
 - **Real-time graph joins:** real-time profile data graphs join child objects only through the parent object's primary key. Relate profile-extension data (for example tiers, preferences, account or subscription attributes) to Individual or Unified Individual, not through Party Identification values.
 - **Targeting context:** targeting rules can use request context as well as profile data: `Scheduling`, `Source`, `UTM Parameters` and `Visit Context` (page type).
 - **Decision evaluation:** only `Live` decisions (not `Draft`) are evaluated, in priority order, and one decision is returned per point. To QA, bulk-edit or clone decisions without the wizard, `GET` and `PUT` the point through the Connect API ([headless-decisions.md](references/headless-decisions.md)).
+- **Reading a profile's real-time record:** first ask whether the user has Workbench or other API access to the org. If yes, use the REST data graph lookup ([headless-decisions.md](references/headless-decisions.md) §8); if not, use the Flow action ([troubleshooting.md](references/troubleshooting.md)). Ask for the data graph API name, a lookup key and the data space.
 - **No default decision:** when nothing qualifies, an SP personalization point returns no decision and the diagnostic `NO_DECISION_QUALIFIED`. Build an explicit catch-all decision if the slot must never be empty. Marketing Cloud Next message dynamic content, unlike SP points, does have a default variation.
 - **Documented limits:**
   - 25 decisions per point

@@ -4,6 +4,12 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.10.2] - 2026-10-12
+
+### Changed
+
+- Reading a profile's real-time data graph record now starts with a question: does the user have Workbench or other API access to the org? If yes, the REST lookup (`references/headless-decisions.md` §8, with the Workbench REST Explorer steps); if not, the Flow action (`references/troubleshooting.md`). The inputs to ask for are listed once. Added to `SKILL.md`, §8 and the troubleshooting bullet.
+
 ## [1.10.1] - 2026-10-12
 
 ### Added
@@ -301,7 +307,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.2...HEAD
+[1.10.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.1...v1.9.0

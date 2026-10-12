@@ -199,7 +199,16 @@ Run it on the raw `GET` output before go-live and after every edit:
 
 ## 8. Read the profile a decision sees (data graph lookup)
 
-A decision's rules run against the visitor's record in the point's profile data graph. Reading that record as JSON shows which condition fails, without building a Flow (the Flow action is in [troubleshooting.md](troubleshooting.md), "A consent change or sign-in isn't reflected").
+A decision's rules run against the visitor's record in the point's profile data graph. Reading that record as JSON shows which condition fails.
+
+**Ask first: does the user have Workbench or other API access to the org?** The two ways to read the record need different access:
+
+- **Yes, Workbench or another REST client that calls the org's REST API under the user's own login:** use the lookup in this section. In Workbench, open **Utilities → REST Explorer**, choose `GET`, and paste the path from "Example requests" starting at `/services/data/…` (Field-verified). Check that the organization allows the tool before using it.
+- **No, or the tool isn't allowed:** use the Flow action `cdpGetDataGraphByLookup` in an unactivated autolaunched flow, run with **Debug** ([troubleshooting.md](troubleshooting.md), "A consent change or sign-in isn't reflected"). It runs as the user inside the org, with no tool or token to authorize.
+- **Either way, ask for:**
+  - the profile data graph API name;
+  - a lookup key, a web device ID or another source ID, or the unified individual ID;
+  - the data space, if it isn't `default`.
 
 - **Resources** (Data 360 Connect API, documented from v59.0) [src](https://developer.salesforce.com/docs/data/connectapi/references/spec):
 
