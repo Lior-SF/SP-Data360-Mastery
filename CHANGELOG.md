@@ -4,6 +4,15 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.10.3] - 2026-10-12
+
+### Changed
+
+- `references/wpm-experiences-campaigns.md` §3:
+  - `Replace an Element` accepts only `div`, `p`, `header`, `footer`, `section`, `article`, `nav` and `table` targets (Field-observed); whether the Add methods share the list is (UNVERIFIED).
+  - "Element must be present on page" is now described from field observation, replacing the earlier UNVERIFIED note, with the reload-and-check fix.
+  - Check the selector `Select Element` proposes for runtime state classes and multiple matches.
+
 ## [1.10.2] - 2026-10-12
 
 ### Changed
@@ -307,7 +316,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.2...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.3...HEAD
+[1.10.3]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.2...v1.10.3
 [1.10.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.9.0...v1.10.0
