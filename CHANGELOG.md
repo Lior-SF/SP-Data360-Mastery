@@ -4,6 +4,19 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-10-12
+
+### Added
+
+- `references/headless-decisions.md`:
+  - §2: an example `GET` of a point, with fake values.
+  - §8: example lookup, standard-copy and metadata requests, with fake values, and the identity link DMO name for the standard Individual graph.
+  - §6: the `TestMode` step says it uses the Decisioning API with a Data 360 token, links to [decisioning.md](references/decisioning.md) §5.3, and adds an example body and the on-page `Personalization.fetch` call.
+
+### Changed
+
+- `references/headless-decisions.md`, Gaps: "a link with nothing nested under it" now gives the observed context (record skipped by identity resolution's 15 KB limit, duplicate contact points from unstable keys), how to check it and how to fix it, with the causal link labeled as inference.
+
 ## [1.10.0] - 2026-10-12
 
 ### Added
@@ -288,7 +301,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.1...HEAD
+[1.10.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.0...v1.8.1

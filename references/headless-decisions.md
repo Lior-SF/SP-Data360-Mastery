@@ -10,7 +10,7 @@
   - "(Field-verified)": a request run in a real org that produced the stated result.
   - "(Field-observed, undocumented)": seen in responses, absent from the docs.
   - "(UNVERIFIED)": not yet confirmed by a doc or a test. Re-test field results after every seasonal release.
-- Placeholders: `<INSTANCE>`, `<POINT_API_NAME>`, `<DECISION_API_NAME>`, `<CONTENT_SCHEMA_NAME>`, `<PROFILE_DATA_GRAPH_NAME>`, `<ATTRIBUTE_NAME>`, `<CHILD_DMO>`, `<FIELD>`, `<LINK_DMO>` (identity link DMO), `<SOURCE_ID>`, `<UNIFIED_ID>`, `<RECORD>`.
+- Placeholders: `<INSTANCE>`, `<POINT_API_NAME>`, `<DECISION_API_NAME>`, `<CONTENT_SCHEMA_NAME>`, `<PROFILE_DATA_GRAPH_NAME>`, `<ATTRIBUTE_NAME>`, `<CHILD_DMO>`, `<FIELD>`, `<LINK_DMO>` (identity link DMO), `<SOURCE_ID>`, `<UNIFIED_ID>`, `<RECORD>`, `<ORG_SESSION_OR_OAUTH_TOKEN>`. Names and IDs in the examples (`Homepage_Hero`, `Customer_Profile_RT`, `0f1e2d3c4b5a6978`) are fake.
 
 ## 1. When to use it
 
@@ -39,6 +39,15 @@
   - **No delete by omission:** a body that leaves out an existing decision is rejected as a whole with `You cannot update records for the PersonalizationPoint object.`, and nothing changes. Delete decisions in the UI.
   - **No rules:** a decision sent without `targetingRules` reads back as `targetingRules: null`, the `Always (No Rules)` form.
 - **Read raw values.** Responses are minimally HTML entity-encoded by default, so `&` in a URL comes back as `&amp;`. Send `X-Chatter-Entity-Encoding: false` [src](https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_encoding.html). Writing an encoded value back would store the entity text (inference), so always read raw before you write.
+- **Example request** (fake values; `Homepage_Hero` stands for `<POINT_API_NAME>`):
+
+  ```http
+  GET https://<INSTANCE>/services/data/v67.0/personalization/personalization-points/Homepage_Hero
+  Authorization: Bearer <ORG_SESSION_OR_OAUTH_TOKEN>
+  X-Chatter-Entity-Encoding: false
+  ```
+
+  The response is the point with `decisions[]`; each decision carries `name`, `state`, `targetingRules` and `attributeValues` (§4).
 - **Auth and method override:** Connect REST API uses OAuth 2.0 over HTTPS. A client that can't send `PUT` can `POST` with `?_HttpMethod=PUT` [src](https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_architecture.html); the override is untested on personalization resources (UNVERIFIED).
 
 ## 3. Input schema (documented)
@@ -165,7 +174,15 @@ json.dump(clean(json.load(open(sys.argv[1]))), sys.stdout, ensure_ascii=False, i
    - Open the decision in the wizard and check that every condition displays.
    - Check `Priority` in the point's `Personalization Decisions` list.
    - Read both test profiles' records (§8) and check that they hold the data the rules need.
-   - Request the point with `executionFlags: ["TestMode"]` for a profile that should match and one that shouldn't. Test mode records no outputs to the data lake [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html).
+   - Request the point with `executionFlags: ["TestMode"]` for a profile that should match and one that shouldn't. Test mode records no outputs to the data lake [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html). This is the Decisioning API on the tenant endpoint, not the Connect API, and its authenticated variant takes a Data 360 access token instead of the org session; endpoints and body fields are in [decisioning.md](decisioning.md) §5.3. Example body (fake values):
+
+     ```json
+     { "context": { "individualId": "0f1e2d3c4b5a6978" },
+       "personalizationPoints": [ { "name": "Homepage_Hero" } ],
+       "executionFlags": ["TestMode"] }
+     ```
+
+     On the page itself, `SalesforceInteractions.Personalization.fetch(["Homepage_Hero"])` requests the point for the current browser's profile.
 6. **Go live.** Set `state` to `Live` in another `PUT`, or in the UI.
 
 ## 7. QA checklist for a point's decisions
@@ -195,8 +212,17 @@ A decision's rules run against the visitor's record in the point's profile data 
 - **URL and auth:** the same `https://<INSTANCE>/services/data/v67.0` base as §2, with the caller's own org session. No Data 360 tenant token is needed (Field-verified).
 - **Lookup keys** [src](https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_ConnectAPI_CdpQuery_static_methods.htm):
   - The root's primary key, `[ssot__Id__c=<UNIFIED_ID>]`.
-  - A source ID through the identity link DMO, `[<LINK_DMO>__dlm.SourceRecordId__c=<SOURCE_ID>]`. A web device ID and a batch-loaded record ID both worked, sent with the brackets unencoded (Field-verified). If a client rejects the URL, encode it as `%5B…%3D…%5D`.
+  - A source ID through the identity link DMO, `[<LINK_DMO>__dlm.SourceRecordId__c=<SOURCE_ID>]`. For the standard Individual graph `<LINK_DMO>` is `IndividualIdentityLink`; the graph metadata lists the exact name. A web device ID and a batch-loaded record ID both worked, sent with the brackets unencoded (Field-verified). If a client rejects the URL, encode it as `%5B…%3D…%5D`.
   - `dataspace` defaults to `default`.
+- **Example requests** (fake values; `Customer_Profile_RT` stands for `<PROFILE_DATA_GRAPH_NAME>`, `0f1e2d3c4b5a6978` for a web device ID):
+
+  ```http
+  GET https://<INSTANCE>/services/data/v67.0/ssot/data-graphs/data/Customer_Profile_RT?lookupKeys=[IndividualIdentityLink__dlm.SourceRecordId__c=0f1e2d3c4b5a6978]
+  GET https://<INSTANCE>/services/data/v67.0/ssot/data-graphs/data/Customer_Profile_RT?lookupKeys=[IndividualIdentityLink__dlm.SourceRecordId__c=0f1e2d3c4b5a6978]&noCache=true
+  GET https://<INSTANCE>/services/data/v67.0/ssot/data-graphs/metadata?dataGraphEntityName=Customer_Profile_RT
+  ```
+
+  Send each with `Authorization: Bearer <ORG_SESSION_OR_OAUTH_TOKEN>`. The first reads the real-time copy, the second the standard copy, the third the graph definition.
 - **Which copy answers:** by default the lookup reads the real-time graph and falls back to the standard graph if the real-time one is unavailable; `noCache=true` reads the standard copy [src](https://developer.salesforce.com/docs/data/connectapi/references/spec).
 - **Response shape (Field-verified):**
   - A match returns `{"data":[{"json_blob__c":"<RECORD>"}],"done":true,"metadata":{}}`.
@@ -249,7 +275,7 @@ The record holds personal data. Mask names, member numbers, device IDs and feder
 - How priority is set through the API. The input has no priority field, and creation order sets the initial priority [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5). A decision appended at the end of `decisions[]` got the next priority (Field-verified). Whether reordering the array changes the priority of existing decisions is (UNVERIFIED); change priority in the UI.
 - Keys of `CalculatedInsight` rules, `Or` groups below the root, and operators beyond the partial list in §4 are undocumented. Build one in the wizard, `GET` it, and copy the shape.
 - Whether `Count` with `Equals 0` evaluates true for a profile with no related rows (UNVERIFIED).
-- A data graph record can hold a link with nothing nested under it, while the linked rows exist in the DMOs. This was seen on a profile above the link cap in §8, in both copies; the cause is open, so raise a case with the lookup outputs (Field-observed).
+- A data graph record can hold a link with nothing nested under it, while the source rows exist in the DMOs (Field-observed). In the case seen, the source record had no stored identity link, its ruleset runs ended with records skipped for exceeding the documented 15 KB size [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5) ([field-guide-data.md](field-guide-data.md) §1), and it carried dozens of duplicate contact points because each load gave them new primary keys (Field-observed). That the skip produced the empty link is inference, and whether related contact points count toward the 15 KB is (UNVERIFIED). **Check:** the identity resolution run status for "skipped … greater than 15KB", and the contact point rows per source record. **Fix:** keep contact point primary keys stable across loads and remove the duplicates. Whether the record then links on the next run is (UNVERIFIED).
 - Whether the decision engine reads the same record the lookup returns, including the fallback to the standard copy (inference; the docs describe the lookup, not the engine's read).
 
 ## Sources
