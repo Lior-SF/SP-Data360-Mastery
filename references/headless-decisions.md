@@ -3,13 +3,14 @@
 ## Scope
 
 - Reading a personalization point's decisions as JSON, checking them, and creating or changing decisions without the decision wizard, through the Personalization Connect REST API.
+- Reading the profile data graph record a decision evaluates, through the Data 360 Connect API (§8).
 - Baseline: Connect REST API v67.0 and SP Help at release 264.0.0. Concepts (points, decisions, targeting rules, merge fields, priority) are in [decisioning.md](decisioning.md) §5–§6; this file covers only the API mechanics.
 - Labels:
   - Documented facts carry `[src](url)`. The input schema in §3 comes from the API reference's published schema.
   - "(Field-verified)": a request run in a real org that produced the stated result.
   - "(Field-observed, undocumented)": seen in responses, absent from the docs.
   - "(UNVERIFIED)": not yet confirmed by a doc or a test. Re-test field results after every seasonal release.
-- Placeholders: `<INSTANCE>`, `<POINT_API_NAME>`, `<DECISION_API_NAME>`, `<CONTENT_SCHEMA_NAME>`, `<PROFILE_DATA_GRAPH_NAME>`, `<ATTRIBUTE_NAME>`, `<CHILD_DMO>`, `<FIELD>`.
+- Placeholders: `<INSTANCE>`, `<POINT_API_NAME>`, `<DECISION_API_NAME>`, `<CONTENT_SCHEMA_NAME>`, `<PROFILE_DATA_GRAPH_NAME>`, `<ATTRIBUTE_NAME>`, `<CHILD_DMO>`, `<FIELD>`, `<LINK_DMO>` (identity link DMO), `<SOURCE_ID>`, `<UNIFIED_ID>`, `<RECORD>`.
 
 ## 1. When to use it
 
@@ -163,6 +164,7 @@ json.dump(clean(json.load(open(sys.argv[1]))), sys.stdout, ensure_ascii=False, i
    - Run `GET` again and diff it with the body you sent.
    - Open the decision in the wizard and check that every condition displays.
    - Check `Priority` in the point's `Personalization Decisions` list.
+   - Read both test profiles' records (§8) and check that they hold the data the rules need.
    - Request the point with `executionFlags: ["TestMode"]` for a profile that should match and one that shouldn't. Test mode records no outputs to the data lake [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html).
 6. **Go live.** Set `state` to `Live` in another `PUT`, or in the UI.
 
@@ -178,6 +180,68 @@ Run it on the raw `GET` output before go-live and after every edit:
 - A mistyped condition value saves without an error and never matches (Field-observed). Diff values across sibling decisions, and check the stored values with `SELECT <FIELD>__c, COUNT(*) FROM <DMO>__dlm GROUP BY <FIELD>__c` before writing an `In` list. If the excluded values plus the required one cover every stored value, the exclusion is equivalent to "every row is the required value".
 - Decisions with similar names have the conditions their names imply.
 
+## 8. Read the profile a decision sees (data graph lookup)
+
+A decision's rules run against the visitor's record in the point's profile data graph. Reading that record as JSON shows which condition fails, without building a Flow (the Flow action is in [troubleshooting.md](troubleshooting.md), "A consent change or sign-in isn't reflected").
+
+- **Resources** (Data 360 Connect API, documented from v59.0) [src](https://developer.salesforce.com/docs/data/connectapi/references/spec):
+
+  | Method | Resource | Returns |
+  |---|---|---|
+  | `GET` | `/ssot/data-graphs/data/{dataGraphEntityName}?lookupKeys=[…]` | Records matching a lookup key |
+  | `GET` | `/ssot/data-graphs/data/{dataGraphEntityName}/{id}` | The record whose root primary key is `{id}`; `live` (v63.0) toggles live lookup |
+  | `GET` | `/ssot/data-graphs/metadata?dataGraphEntityName=<PROFILE_DATA_GRAPH_NAME>` | The graph definition |
+
+- **URL and auth:** the same `https://<INSTANCE>/services/data/v67.0` base as §2, with the caller's own org session. No Data 360 tenant token is needed (Field-verified).
+- **Lookup keys** [src](https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_ConnectAPI_CdpQuery_static_methods.htm):
+  - The root's primary key, `[ssot__Id__c=<UNIFIED_ID>]`.
+  - A source ID through the identity link DMO, `[<LINK_DMO>__dlm.SourceRecordId__c=<SOURCE_ID>]`. A web device ID and a batch-loaded record ID both worked, sent with the brackets unencoded (Field-verified). If a client rejects the URL, encode it as `%5B…%3D…%5D`.
+  - `dataspace` defaults to `default`.
+- **Which copy answers:** by default the lookup reads the real-time graph and falls back to the standard graph if the real-time one is unavailable; `noCache=true` reads the standard copy [src](https://developer.salesforce.com/docs/data/connectapi/references/spec).
+- **Response shape (Field-verified):**
+  - A match returns `{"data":[{"json_blob__c":"<RECORD>"}],"done":true,"metadata":{}}`.
+  - `json_blob__c` is the record as a JSON string, HTML entity-encoded (`&quot;`). Decode the entities, then parse the string. Whether `X-Chatter-Entity-Encoding: false` returns it raw is (UNVERIFIED).
+  - No match returns `{"data":[],"done":true,"metadata":{}}`.
+- **Metadata response (Field-verified):** each object with its fields, `dataType` and key flag (`keyCol`), the join fields between objects, and the graph's real-time settings (record caching, session length). Use it to pick the primary key for a `Count` condition (§4) and to check every `relatedObjectsPath`.
+
+A decoder for a lookup response saved as `record.json`. It prints how many rows each path holds, so a missing node stands out:
+
+```python
+import html, json, sys
+from collections import Counter
+
+resp = json.load(open(sys.argv[1]))
+counts = Counter()
+
+def walk(node, path):
+    for key, value in node.items():
+        if isinstance(value, list):
+            counts[path + key] += len(value)
+            for row in value:
+                walk(row, path + key + " > ")
+
+for row in resp["data"]:
+    record = json.loads(html.unescape(row["json_blob__c"]))
+    print("root:", {k: v for k, v in record.items() if not isinstance(v, list)})
+    walk(record, "")
+for path, n in sorted(counts.items()):
+    print(f"{n:5}  {path}")
+```
+
+The record holds personal data. Mask names, member numbers, device IDs and federated IDs before sharing it outside the project team.
+
+**Reading the result (Field-observed):**
+
+- **One lookup returns the whole person.** A device ID returns the unified record with links from every source. A link being present proves nothing: check what's nested under the link that should carry the business data.
+- **Fresh sessions exist only in the real-time copy.** A device first seen today returned the real-time record, while `noCache=true` returned no match. The stored link DMO in Query Editor also lacked that device. The standard copy and the stored links pick a device up only after identity resolution and the next graph refresh. For a live web session, use the default lookup.
+- **Child rows are capped.** A profile with more than 100 identity links returned 100 links plus the current device. That matches the documented default of 100 records per DMO, sorted by primary key and adjustable up to 1,000 [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limit_child_records_data_graph.htm&release=264.0.0&type=5). Links past the cap, and everything under them, are absent, so related-object rules can fail for heavily linked profiles (inference). Test identities reused across many browsers hit it first. Use a sort and limit or a condition on the link node, and test with identities that have few devices.
+- **Diagnose "did not qualify."** Take the decision's rules from a `GET` of the point (§4) and walk them against the record:
+  - Root `Field` conditions read the root's values.
+  - Every `RelatedField` path must exist in the record, in the shape the rule expects.
+  - `Count` counts the rows reachable along the path.
+
+  Then confirm with the `TestMode` request in §6. If a condition fails only because data is missing from the record while the rows exist in Query Editor, the cause is in the graph or identity data, not the decision.
+
 ## Gaps and uncertainties
 
 - Whether `PUT` matches existing decisions by `name` or by position in `decisions[]`. The verified update kept both the same, so keep the order when you edit (UNVERIFIED).
@@ -185,11 +249,15 @@ Run it on the raw `GET` output before go-live and after every edit:
 - How priority is set through the API. The input has no priority field, and creation order sets the initial priority [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5). A decision appended at the end of `decisions[]` got the next priority (Field-verified). Whether reordering the array changes the priority of existing decisions is (UNVERIFIED); change priority in the UI.
 - Keys of `CalculatedInsight` rules, `Or` groups below the root, and operators beyond the partial list in §4 are undocumented. Build one in the wizard, `GET` it, and copy the shape.
 - Whether `Count` with `Equals 0` evaluates true for a profile with no related rows (UNVERIFIED).
+- A data graph record can hold a link with nothing nested under it, while the linked rows exist in the DMOs. This was seen on a profile above the link cap in §8, in both copies; the cause is open, so raise a case with the lookup outputs (Field-observed).
+- Whether the decision engine reads the same record the lookup returns, including the fallback to the standard copy (inference; the docs describe the lookup, not the engine's read).
 
 ## Sources
 
 Connect REST API:
 - https://developer.salesforce.com/docs/platform/connect-rest-api/references/connect-rest-api-personalization
+- https://developer.salesforce.com/docs/data/connectapi/references/spec
+- https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_ConnectAPI_CdpQuery_static_methods.htm
 - https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_building_url.html
 - https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_encoding.html
 - https://developer.salesforce.com/docs/platform/connect-rest-api/guide/intro_architecture.html
@@ -200,3 +268,7 @@ SP Help and developer guide:
 - https://help.salesforce.com/s/articleView?id=mktg.persnl_point_decision_add_merge_fields.htm&release=264.0.0&type=5
 - https://help.salesforce.com/s/articleView?id=mktg.persnl_basics_limits.htm&release=264.0.0&type=5
 - https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html
+
+Data 360 Help:
+- https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5
+- https://help.salesforce.com/s/articleView?id=data.c360_a_limit_child_records_data_graph.htm&release=264.0.0&type=5

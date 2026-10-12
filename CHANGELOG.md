@@ -4,6 +4,24 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-10-12
+
+### Added
+
+- `references/headless-decisions.md` §8: read the profile data graph record a decision evaluates through the Data 360 Connect API, as a REST alternative to the Flow lookup.
+  - The lookup, by-ID and metadata resources, the lookup key forms and `noCache` (documented).
+  - What was field-verified: the call works with the caller's org session and no Data 360 tenant token, the response wraps the record in an entity-encoded `json_blob__c` string, and a no-match response is empty.
+  - A decoder script that counts the rows on each path.
+  - How to read the result (Field-observed): a fresh session exists only in the real-time copy, child rows stop at the documented default of 100 per DMO, and how to walk a decision's rules against the record.
+  - Two new gaps: a link returned with nothing nested under it, and whether the decision engine reads the same record.
+- §6 adds a step that reads both test profiles' records before the `TestMode` check.
+
+### Changed
+
+- `references/troubleshooting.md`: the Flow lookup now has a REST alternative, and "The point returns no content for some visitors" adds walking the record and the child-row cap.
+- `references/data-360-foundations.md`: the data graph record check lists the Connect API lookup and metadata resources.
+- `SKILL.md`, `README.md` and `CONTRIBUTING.md` list the data graph lookup under `headless-decisions.md`.
+
 ## [1.9.0] - 2026-10-08
 
 ### Added
@@ -270,7 +288,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.7.0...v1.8.0

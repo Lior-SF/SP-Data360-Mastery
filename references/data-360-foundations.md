@@ -329,6 +329,7 @@ WHERE l.UnifiedRecordId__c IN (
 **Data graph record check**
 - Data Explorer → object type Data Graph → the graph → view the JSON; set **Real-time View: On** to read real-time instead of cached data [src](https://help.salesforce.com/s/articleView?id=data.c360_a_view_your_data.htm&release=264.0.0&type=5).
 - Query API lookup by source ID: `GET /api/v1/dataGraph/{name}?lookupKeys=[<LINK_DMO>__dlm.SourceRecordId__c=<TEST_SOURCE_ID>]`, adding `live=true` for the latest data instead of the precalculated record; real-time graphs accept only primary-key and key-qualifier lookups [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-lookup.html).
+- Without a Data 360 tenant token: the Data 360 Connect API on the org's own REST endpoint, `GET /services/data/v67.0/ssot/data-graphs/data/{name}?lookupKeys=[…]`, with `noCache=true` for the standard copy, and `/ssot/data-graphs/metadata?dataGraphEntityName={name}` for the definition [src](https://developer.salesforce.com/docs/data/connectapi/references/spec). Response shape and reading tips: [headless-decisions.md](headless-decisions.md) §8.
 - End-to-end: call the point with `TestMode` and `context.individualId` ([field-guide-data.md](field-guide-data.md) §3).
 
 ## Field-observed lessons
