@@ -104,6 +104,7 @@ if (initialViewSuppressed) { initialViewSuppressed = false; SalesforceInteractio
   - To separate the platform from the browser, call the point on the authenticated endpoint with a source `context.individualId` and `TestMode` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-request-personalization.html). If the decision is right there, the browser session isn't stitched.
   - If web devices with the same identifier also stay separate, check the criterion for a cross-object "Match to" target (Field-observed).
   - After an `IDName`/`IDType` change, older rows fall outside the rule, so filter counts by Name.
+  - If it happens only for a sign-in after an in-place sign-out, check the data layer for an identifier entry pushed after the sign-out. A sitemap that ignores entries from before the sign-out sends no `partyIdentification` without one ([field-guide-web.md](field-guide-web.md) §2.2).
 
   Details: [field-guide-data.md](field-guide-data.md) §1, §3.
 

@@ -4,6 +4,18 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.10.4] - 2026-10-13
+
+### Added
+
+- `SKILL.md`: a "Real-time freshness" fact. Web SDK events reach a real-time graph at once, and a sign-in links the device to the member's existing unified profile in milliseconds without a scheduled identity resolution run (documented). Unified profiles arrive once a day and the lakehouse version refreshes hourly, so data from other streams shows later (Field-observed).
+- `references/headless-decisions.md` §8: before and after a sign-in, the lookup moves the device from its own unified ID to the member's, which matches documented real-time matching.
+- `references/field-guide-web.md` §2.2: a sign-in after an in-place sign-out binds only if the site pushes the identifier again (Field-observed). Also in the §2.1 identity contract and its regression test, the `troubleshooting.md` symptom "Signed-in visitors still get anonymous or default decisions", and `SKILL.md`.
+
+### Changed
+
+- `references/field-guide-data.md` §3: "Batch updates can lag for active visitors" now separates the documented refresh behavior (real-time events, hourly lakehouse version, session extension) from the field-observed delay for source data streams. It marks the end-to-end delay and the effect of CRM connector streaming as undocumented, and labels the real-time matching of people who exist only in a source stream as inference.
+
 ## [1.10.3] - 2026-10-12
 
 ### Changed
@@ -316,7 +328,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.3...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.4...HEAD
+[1.10.4]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.3...v1.10.4
 [1.10.3]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.2...v1.10.3
 [1.10.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.0...v1.10.1
