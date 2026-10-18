@@ -4,6 +4,18 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.10.5] - 2026-10-18
+
+### Added
+
+- `references/field-guide-web.md` §2.4: a reload inside the sign-in refresh window loses the refresh timer with the page, so store the bind time in `sessionStorage` and refresh once on the next page, treating a negative gap (clock moved back) as not recent. Also in `SKILL.md` and the `troubleshooting.md` symptom "Signed-in visitors still get anonymous or default decisions".
+- `references/field-guide-web.md` testing: continue the virtual clock across a simulated reload.
+- `references/field-guide-data.md` §7: a sign-in that brings no new identifier isn't a switch under either unbind policy, with the attribution and device-split trade-off. Also in the same `troubleshooting.md` symptom.
+
+### Changed
+
+- `references/field-guide-web.md` §2.3: arm network logout signals with intent **and disarm once handled**. Left armed, a logout's 2xx could rotate the device of a different user who signed straight back in. Once intent resets at once and disarms, the network signal never acts.
+
 ## [1.10.4] - 2026-10-13
 
 ### Added
@@ -328,7 +340,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.4...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.5...HEAD
+[1.10.5]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.4...v1.10.5
 [1.10.4]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.3...v1.10.4
 [1.10.3]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.2...v1.10.3
 [1.10.2]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.1...v1.10.2
