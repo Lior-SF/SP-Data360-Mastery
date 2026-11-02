@@ -4,6 +4,11 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Changed
+
+- `README.md`: the `headless-decisions.md` row now lists building decisions from scratch and the QA checklist, and the example prompts include a from-scratch decision request.
+- `references/headless-decisions.md` §7: the reachability check names the catch-all item it relies on, and the checks from **Reachability** onward are labeled review practice rather than documented requirements.
+
 ## [1.11.0] - 2026-11-02
 
 ### Added
