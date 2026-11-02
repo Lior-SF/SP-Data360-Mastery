@@ -10,7 +10,7 @@ description: >-
   (WPM), experience templates, campaigns, experiments, engagement signals,
   attribution, Personalization Intelligence dashboards, the Decisioning API, the
   Engagement Mobile SDK, batch decisions, Data 360 SQL reporting, and an
-  implementation playbook for any site type or channel. Use when a prompt
+  implementation playbook. Use when a prompt
   involves Salesforce Personalization, Data 360 or Data Cloud personalization,
   personalization points or decisions, WPM, sitemaps, engagement signals or
   attribution, and to keep answers separate from Marketing Cloud Personalization
@@ -39,7 +39,7 @@ Decide which product the prompt is about before answering.
 
 - If the prompt mixes vocabularies ("Einstein Recipe for my personalization point"), say which product each term belongs to and map it to the SP equivalent using [references/sp-vs-mcp.md](references/sp-vs-mcp.md).
 - `SalesforceInteractions`, "sitemap" and "content zone" exist in both products with different behavior. Never reuse MCP semantics for them.
-- MCP-only features don't exist in SP: native frequency capping, Einstein Recipes, Gears and campaign template code. Don't claim SP has them. To cap frequency in SP, count the experience's own view events in a time-windowed real-time insight and gate the decision on it, with no catch-all decision on that point. This is a pattern built from documented parts, not a feature; the steps and limits are in [decisioning.md](references/decisioning.md) §8.1.
+- MCP-only features don't exist in SP: native frequency capping, Einstein Recipes and campaign template code. Gears aren't documented for SP (absence UNVERIFIED; see [sp-vs-mcp.md](references/sp-vs-mcp.md) §3). Don't claim SP has them. To cap frequency in SP, count the experience's own view events in a time-windowed real-time insight and gate the decision on it, with no catch-all decision on that point for overlays and pop-ups (an inline slot that must never be empty needs a neutral catch-all instead). This is a pattern built from documented parts, not a feature; the steps and limits are in [decisioning.md](references/decisioning.md) §8.1.
 
 ## Answer workflow
 
@@ -115,7 +115,7 @@ Each fact is detailed and cited in the linked reference.
   - `Use Case Setup`: `Maximize Product Revenue` (commerce) or `Maximize Article Clicks` (content). It can't deploy into a data space that already has a profile data graph, or twice to the same data space.
   - `Advanced Setup`
 - Permissions:
-  - `Personalization Admin` and `Personalization User` are the two standard permission sets. `Personalization User` can't create engagement signals, attribution models or batch decisions.
+  - `Personalization Admin` and `Personalization User` are the two standard permission sets. `Personalization User` has only Read on engagement signals, attribution models and batch decisions (UNVERIFIED whether the system permission `Personalization Intelligence User`, which both sets include, still allows creating custom attribution).
   - Setup also requires adding `Access Personalization Platform` to the `Data Cloud Salesforce Connector` permission set.
   - Dashboards need `Personalization Intelligence User`.
 - The billable unit is the personalization decision. License credit allowances and attribution-model quotas are in the reference. The Personalization Card covers SP inside Salesforce apps; web, mobile apps and other channels outside Salesforce clouds need the full Personalization License.
@@ -141,7 +141,7 @@ Each fact is detailed and cited in the linked reference.
   - Profile data belongs in `user.attributes`, with an `eventType` such as `identity`, `partyIdentification` or `contactPointEmail`.
   - Fields placed under `interaction.attributes` become engagement fields, so no contact point is created.
   - `user.identities` is MCP's identity model.
-- **`isMatch`:** must return a boolean. MCP allows a Promise; in SP a returned Promise is truthy and matches every page.
+- **`isMatch`:** the documented signature is `() => Boolean`; return a plain boolean. A returned Promise would be truthy and match every page (inference; see [web-sdk-and-sitemap.md](references/web-sdk-and-sitemap.md) §5). MCP may differ (UNVERIFIED).
 - **Page type names:** a sitemap page type `name` is both the WPM `Current Page Type` binding and the `sourcePageType` on events. Renaming it silently breaks experiences and reports.
 - **Fetching on the web:** call `SalesforceInteractions.Personalization.fetch([...])`; `fetchDecisions` is the mobile SDK method. Dynamic Content values arrive in each personalization's `attributes`, not in `data`.
 - **Personalization events:** web renders emit `personalization-view` and `personalization-click` (`userEngagement`) into the Website Engagement DMO.
@@ -151,12 +151,12 @@ Each fact is detailed and cited in the linked reference.
 ### Decisioning — [decisioning.md](references/decisioning.md)
 
 - **Standard vs real-time data graphs:** a point on a **standard** profile data graph skips the profile lookup and is evaluated against a blank anonymous profile unless the caller supplies profile data, so profile-based targeting rules evaluate false. Use a **real-time** profile data graph for live web targeting; WPM lists only points built on one.
-- **Real-time freshness:** Web SDK events reach a real-time graph at once, and a sign-in links the device to the member's existing unified profile in milliseconds, without waiting for a scheduled identity resolution run. Unified profiles from scheduled runs reach the real-time graph once a day and its lakehouse version refreshes hourly, so data from other streams shows later (Field-observed; the delay, and how CRM connector streaming behaves here, are undocumented). Details: [field-guide-data.md](references/field-guide-data.md) §3.
+- **Real-time freshness:** Web SDK events reach a real-time graph at once, and a sign-in can link the device to a person whose identity a scheduled run has already unified, without waiting for another run; a person who exists only in a source stream can't be matched in real time until a scheduled run has unified them (inference from [field-guide-data.md](references/field-guide-data.md) §1.2). The limits page lists 24 scheduled refreshes a day for real-time graphs, while [field-guide-data.md](references/field-guide-data.md) §1.2 describes unified profiles from scheduled runs arriving once a day; whether these are one clock is UNVERIFIED. Data from other streams therefore shows later (Field-observed; the delay, and how CRM connector streaming behaves here, are undocumented). Details: [field-guide-data.md](references/field-guide-data.md) §3.
 - **Personalization type:** choosing a type fixes the point's shape: Recommendations (recommender output) or Dynamic Content (attributes stored on the decision; still `ManualContent` in the API).
 - **Real-time graph joins:** real-time profile data graphs join child objects only through the parent object's primary key. Relate profile-extension data (for example tiers, preferences, account or subscription attributes) to Individual or Unified Individual, not through Party Identification values.
 - **Targeting context:** targeting rules can use request context as well as profile data: `Scheduling`, `Source`, `UTM Parameters` and `Visit Context` (page type).
-- **Decision evaluation:** only `Live` decisions (not `Draft`) are evaluated, in priority order, and one decision is returned per point. To QA, bulk-edit or clone decisions without the wizard, `GET` and `PUT` the point through the Connect API ([headless-decisions.md](references/headless-decisions.md)).
-- **Building decisions from scratch:** don't draft targeting rules from a business description alone, because rule JSON shapes and stored values are easy to get wrong. First ask the user for the decision matrix (each audience, its content and relative priority, and what everyone else gets), the point's content schema and profile data graph, and one seed decision built in the wizard and read raw through the API (`GET`). Also ask for the stored values of every field the rules will test. Then derive the remaining decisions from the seed's shapes, write them as `Draft` to a test point, and run the QA checklist ([headless-decisions.md](references/headless-decisions.md) §6.1, §7).
+- **Decision evaluation:** only `Live` decisions (not `Draft`) are evaluated, in priority order, and one decision is returned per point. To QA, bulk-edit or clone decisions without the wizard, `GET` and `PUT` the point through the Connect API; a `PUT` takes effect immediately, so test on a test point first ([headless-decisions.md](references/headless-decisions.md)).
+- **Building decisions from scratch:** don't draft targeting rules from a business description alone, because rule JSON shapes and stored values are easy to get wrong. First ask the user for the decision matrix (each audience, its content and relative priority, and what everyone else gets), the point's content schema and profile data graph, and one seed decision built in the wizard and read raw through the API (`GET`). Also ask for the stored values of every field the rules will test. Then derive the remaining decisions from the seed's shapes, write them as `Draft` to a test point and run the QA checklist. `Draft` isn't evaluated, so to test rules set the decisions `Live` on the test point and use a `TestMode` request. Re-sending existing `Live` decisions changes production at once, so clone to a test point first ([headless-decisions.md](references/headless-decisions.md) §6.1, §7).
 - **Reading a profile's real-time record:** first ask whether the user has Workbench or other API access to the org. If yes, use the REST data graph lookup ([headless-decisions.md](references/headless-decisions.md) §8); if not, use the Flow action ([troubleshooting.md](references/troubleshooting.md)). Ask for the data graph API name, a lookup key and the data space.
 - **No default decision:** when nothing qualifies, an SP personalization point returns no decision and the diagnostic `NO_DECISION_QUALIFIED`. Build an explicit catch-all decision if the slot must never be empty. Marketing Cloud Next message dynamic content, unlike SP points, does have a default variation.
 - **Documented limits:**
@@ -183,7 +183,7 @@ Each fact is detailed and cited in the linked reference.
   - Details are in the WPM reference and [troubleshooting.md](references/troubleshooting.md).
 - **Experience templates:** since release 262 they are built in the app, not in the sitemap.
 - **Campaigns:** personalization campaigns support Dynamic Content schemas on the web channel only.
-- **Experiments:** Bayesian, with at least 1,000 participants per cohort (check the Experiment Summary participant totals). The first cohort is the control, and settings are locked after `Start`. `Winner Found` (95% range entirely above control) is a recommendation; roll out manually, or automate through the Experiment Connect API.
+- **Experiments:** Bayesian, with at least 1,000 participants per cohort (check the Experiment Summary participant totals). The first cohort is the control, and settings are largely locked after `Start` (the docs conflict on which; see [wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md) §9). `Winner Found` (95% range entirely above control) is a recommendation; roll out manually, or automate through the Experiment Connect API.
 
 ### Insights — [calculated-insights.md](references/calculated-insights.md)
 
@@ -198,7 +198,7 @@ Each fact is detailed and cited in the linked reference.
 
 - **Signals and the Personalization Log:** a signal can be an attribution funnel stage only if it has an active relationship to the Personalization Log DMO. Website Engagement has no personalization point field, so filter by point through the Personalization Log relationship.
 - **Engagement ↔ log join:** attribution needs an engagement DMO whose `PersonalizationContentId` joins the Personalization Log `Id`. This foreign key is documented on Website, Website Item, Product Browse, Shopping Wishlist (and Item), Shopping Cart Product, Sales Order Product, Media, Lead, Social Message and Promotion Engagement. If the event schema or stream mapping lacks `personalizationContentId`, views and clicks can't be attributed on any channel.
-- **Funnels vs CTR:** attribution funnels are individual-based. The entrance stage counts individuals, and later stages count conversions within the attribution window. Funnel conversion differs from raw event click-through rate (CTR).
+- **Funnels vs CTR:** the entrance stage counts individuals, and later stages are described as conversions within the attribution window (individual vs event counting is UNVERIFIED). Funnel conversion differs from raw event click-through rate (CTR).
 - **Custom attribution:** 2–4 stages, `First Touch` or `Last Touch`, per-org and per-data-space model limits. Predefined attribution needs the Product Browse, Shopping Cart and Product Order engagement objects.
 - **CRM Analytics:** Pipeline Intelligence explicitly requires CRM Analytics. For the Attribution Intelligence `Analytics` tab, the dependency is neither documented nor excluded; its only listed permission is `Personalization Intelligence User`. Confirm in the target org.
 - **Compound metrics:** only one COUNT metric divided by another (`Divide By`). Experiment summaries store `RATE` metrics, so a CTR-style primary metric is viable (strongly implied, not stated).
@@ -210,7 +210,7 @@ Apply the guidance that matches the customer's channels and site type, and expla
 
 ### All implementations
 
-- **Consent:** feed `consents` from the consent manager as a promise that always settles. Events before opt-in are dropped, so replay the first page view once after opt-in, and only if it was suppressed.
+- **Consent:** feed `consents` from the consent manager as a promise that always settles. Events before opt-in are dropped, so optionally replay the first page view once after opt-in, only if it was suppressed (multi-page sites can skip it).
   - The SDK trusts whatever consent status the sitemap passes, and compliance stays with the site owner. Mapping `Opt In` to an always-active "strictly necessary" category opts every visitor in, including those who declined everything. Get privacy sign-off on the category mapping.
 - **Identity:** `partyIdentification` `IDName`/`IDType` must match the identity resolution match rule exactly.
   - Never send placeholder values ("NA", "null") as identifiers.

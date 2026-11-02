@@ -1,4 +1,5 @@
-# Local list of customer or project names that must never be published.
+# Fallback list of customer or project names that must never be published.
+# Prefer ~/.config/sp-data360-mastery/customer-terms.txt (outside the repo).
 # One term per line; read by scripts/validate_skill.py. Never commit it.
 .customer-terms.txt
 

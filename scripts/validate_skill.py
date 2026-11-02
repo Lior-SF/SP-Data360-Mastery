@@ -3,16 +3,21 @@
 
 Checks:
   * SKILL.md frontmatter (name, description) and size limits
-  * every relative Markdown link resolves; every reference file is linked from SKILL.md
-    and listed in the README, CONTRIBUTING and the issue template
-  * cross-references such as `decisioning.md §1.6` point at real numbered headings
-  * publication safety: credentials, Data 360 tenant hosts, org and record IDs,
-    and customer terms supplied privately (BANNED_TERMS env var or .customer-terms.txt)
+  * every relative Markdown link resolves, including #fragments (GitHub-style slugs);
+    every reference file is linked from SKILL.md and listed in the README,
+    CONTRIBUTING and the issue template
+  * cross-references such as `decisioning.md §1.6` (also in backticks, and the
+    shorthands `web §` and `data §` for the field guides) point at real numbered headings
+  * publication safety, in every text file: credentials, tenant hosts, org and record
+    IDs, email addresses, and customer terms supplied privately (BANNED_TERMS env var,
+    ~/.config/sp-data360-mastery/customer-terms.txt, .customer-terms.txt or --terms-file)
   * Marketing Cloud Personalization (MCP) pages are cited only in references/sp-vs-mcp.md,
-    under a heading that mentions MCP, or on a line that labels the source as MCP
-  * each reference file carries inline citations
+    under a heading (level 1-3) that mentions MCP, or on a line that mentions MCP
+  * each reference file has at most 500 lines and at least 10 official `[src]` citations
+    (help.salesforce.com or developer.salesforce.com; other hosts must be labelled)
 
 Exit code 0 when no errors are found (warnings are allowed unless --strict).
+Use --require-terms to fail when no private customer terms were loaded.
 Uses only the Python standard library.
 """
 from __future__ import annotations
@@ -22,27 +27,35 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Set, Tuple
+from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILL_FILE = ROOT / "SKILL.md"
 REFERENCES_DIR = ROOT / "references"
-DEFAULT_TERMS_FILE = ROOT / ".customer-terms.txt"
+USER_TERMS_FILE = Path.home() / ".config" / "sp-data360-mastery" / "customer-terms.txt"
+REPO_TERMS_FILE = ROOT / ".customer-terms.txt"  # fallback; git-ignored
+DEFAULT_TERMS_FILES = [USER_TERMS_FILE, REPO_TERMS_FILE]
 MCP_COMPARISON_FILE = Path("references/sp-vs-mcp.md")
 EXPECTED_NAME = "sp-data360-mastery"
 
 SKILL_MAX_LINES = 500
-REFERENCE_WARN_LINES = 500
-REFERENCE_MAX_LINES = 600
+REFERENCE_MAX_LINES = 500
 MIN_CITATIONS_PER_REFERENCE = 10
 DESCRIPTION_MAX_CHARS = 1024
 
-TEXT_SUFFIXES = {".md", ".yml", ".yaml", ".py", ".txt", ".json"}
 SKIP_DIRS = {".git", "__pycache__"}
+OFFICIAL_CITATION_HOSTS = {"help.salesforce.com", "developer.salesforce.com"}
+SECONDARY_LABELS = ("(workshop source)", "(third-party)")
+FIELD_GUIDE_ALIAS = "field-guide-"  # `web §1.1` means field-guide-web.md, `data §1` field-guide-data.md
+HISTORIC_MARKER = "since renumbered"  # lines with this marker skip the section check
+ZERO_WIDTH = re.compile("[\u200b\u200c\u200d\u2060\ufeff]")
 
-LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+# A link target may contain one level of balanced parentheses and an optional "title".
+URL_BODY = r"(?:[^()\s]|\([^()\s]*\))+"
+LINK_PATTERN = re.compile(r"\[[^\]]*\]\((" + URL_BODY + r')(?:\s+"[^"]*")?\)')
 INLINE_CODE_PATTERN = re.compile(r"`[^`]*`")
-CITATION_PATTERN = re.compile(r"\[src\]\(https?://[^)\s]+\)")
+CITATION_PATTERN = re.compile(r"\[src\]\((https?://" + URL_BODY + r")\)")
 HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.*)")
 FRONTMATTER_KEY = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
 
@@ -56,7 +69,14 @@ ORG_IDENTIFIER_PATTERNS = {
     "Data 360 tenant host": re.compile(r"\b[a-z0-9]{16,}\.c360a\.salesforce\.com\b", re.IGNORECASE),
     "Salesforce org ID": re.compile(r"\b00D[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?\b"),
     "Personalization record ID": re.compile(r"\b(?:9pp|9pb|0Wl)(?!X+\b)[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?\b"),
+    "Salesforce tenant host": re.compile(
+        r"\b[a-z0-9-]+\.(?:sandbox\.)?(?:my\.salesforce\.com|my\.site\.com|lightning\.force\.com"
+        r"|my\.salesforce-sites\.com|salesforce-setup\.com)\b",
+        re.IGNORECASE,
+    ),
 }
+EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)\b")
+EMAIL_ALLOWED_DOMAINS = {"example.com", "example.org", "example.net"}
 MCP_SOURCE_URL = re.compile(
     r"https?://[^\s)\]]*(?:docs/marketing/personalization/|id=mktg\.mc_pers_)",
     re.IGNORECASE,
@@ -156,26 +176,62 @@ def iter_markdown_files() -> Iterable[Path]:
     yield from sorted(p for p in ROOT.rglob("*.md") if not SKIP_DIRS.intersection(p.parts))
 
 
-def prose_lines(path: Path) -> Iterable[Tuple[int, str]]:
-    """Yield (line number, text) outside fenced code blocks, with inline code removed."""
+def prose_lines(path: Path, keep_code: bool = False) -> Iterable[Tuple[int, str]]:
+    """Yield (line number, text) outside fenced code blocks, with inline code removed
+    (kept when keep_code is true)."""
     in_fence = False
     for number, line in enumerate(read_lines(path), start=1):
         if line.lstrip().startswith("```"):
             in_fence = not in_fence
             continue
         if not in_fence:
-            yield number, INLINE_CODE_PATTERN.sub("", line)
+            yield number, line if keep_code else INLINE_CODE_PATTERN.sub("", line)
+
+
+def slugify(heading: str) -> str:
+    """GitHub-style anchor slug for a heading."""
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", heading)
+    text = text.replace("`", "").strip().lower()
+    text = re.sub(r"[^\w\- ]", "", text)
+    return text.replace(" ", "-")
+
+
+_ANCHOR_CACHE: Dict[Path, Set[str]] = {}
+
+
+def anchors_of(path: Path) -> Set[str]:
+    path = path.resolve()
+    if path not in _ANCHOR_CACHE:
+        seen: Dict[str, int] = {}
+        found: Set[str] = set()
+        in_fence = False
+        for line in read_lines(path):
+            if line.lstrip().startswith("```"):
+                in_fence = not in_fence
+                continue
+            match = None if in_fence else HEADING_PATTERN.match(line)
+            if match:
+                slug = slugify(match.group(2))
+                count = seen.get(slug, 0)
+                seen[slug] = count + 1
+                found.add(slug if count == 0 else f"{slug}-{count}")
+        _ANCHOR_CACHE[path] = found
+    return _ANCHOR_CACHE[path]
 
 
 def check_links(report: Report) -> None:
     for path in iter_markdown_files():
         for number, line in prose_lines(path):
             for target in LINK_PATTERN.findall(line):
-                if re.match(r"^(https?:|mailto:|#)", target):
+                if re.match(r"^(https?:|mailto:)", target):
                     continue
-                file_part = target.split("#", 1)[0]
-                if file_part and not (path.parent / file_part).exists():
+                file_part, _, fragment = target.partition("#")
+                resolved = path if not file_part else (path.parent / file_part)
+                if not resolved.exists():
                     report.error(path, number, f"broken link: {target}")
+                elif fragment and resolved.suffix == ".md":
+                    if unquote(fragment).lower() not in anchors_of(resolved):
+                        report.error(path, number, f"broken anchor: {target}")
 
 
 def check_reference_coverage(report: Report) -> None:
@@ -194,15 +250,20 @@ def check_reference_coverage(report: Report) -> None:
         lines = read_lines(path)
         if len(lines) > REFERENCE_MAX_LINES:
             report.error(path, 0, f"{len(lines)} lines (limit {REFERENCE_MAX_LINES})")
-        elif len(lines) > REFERENCE_WARN_LINES:
-            report.warn(path, 0, f"{len(lines)} lines (target {REFERENCE_WARN_LINES} or fewer)")
-        citations = sum(len(CITATION_PATTERN.findall(line)) for line in lines)
+        citations = 0
+        for number, line in enumerate(lines, start=1):
+            for url in CITATION_PATTERN.findall(line):
+                host = (urlparse(url).hostname or "").lower()
+                if host in OFFICIAL_CITATION_HOSTS:
+                    citations += 1
+                elif not any(label in line for label in SECONDARY_LABELS):
+                    report.warn(path, number, f"[src] to {host} needs a (workshop source) or (third-party) label")
         if citations < MIN_CITATIONS_PER_REFERENCE:
-            report.warn(path, 0, f"only {citations} [src](url) citations")
+            report.warn(path, 0, f"only {citations} official [src](url) citations")
 
 
 def check_mcp_citations(report: Report) -> None:
-    candidates = [SKILL_FILE] + sorted(REFERENCES_DIR.glob("*.md"))
+    candidates = [SKILL_FILE, ROOT / "README.md", ROOT / "CONTRIBUTING.md"] + sorted(REFERENCES_DIR.glob("*.md"))
     for path in candidates:
         if not path.exists() or path.relative_to(ROOT) == MCP_COMPARISON_FILE:
             continue
@@ -247,60 +308,89 @@ def heading_numbers(path: Path) -> set:
 
 
 def check_section_references(report: Report) -> None:
-    """A cross-reference such as `decisioning.md §1.6, §7.3` must point at real numbered headings."""
+    """A cross-reference such as `decisioning.md §1.6, §7.3` must point at real numbered headings.
+
+    Also checked: names in backticks (`references/x.md` §2), ranges (§2.1–§2.3) and the
+    shorthands `web §1.1` / `data §2` for field-guide-web.md / field-guide-data.md.
+    Lines marked "since renumbered" (historic changelog entries) are skipped.
+    """
     references = {p.stem: p for p in REFERENCES_DIR.glob("*.md")}
     headings = {stem: heading_numbers(path) for stem, path in references.items()}
-    section_run = r"((?:§\s*\d+(?:\.\d+)*(?:\s*(?:,|and)\s*)?)+)"
+    section_run = r"((?:§\s*\d+(?:\.\d+)*(?:\s*(?:,|and|–|—|-)\s*)?)+)"
     patterns = [
         re.compile(r"\]\((?:\.\./|references/)?([\w-]+)\.md(?:#[^)]*)?\)[^§\n]{0,40}?" + section_run),
-        re.compile(r"(?<![\w/-])([\w-]+?)(?:\.md)?\s*" + section_run),
+        re.compile(r"(?<![\w-])(?:references/)?([\w-]+?)(?:\.md)?`?\s*" + section_run),
     ]
+    reported: Set[Tuple[str, int, str]] = set()
     for path in iter_markdown_files():
-        for number, line in prose_lines(path):
+        for number, line in prose_lines(path, keep_code=True):
+            if HISTORIC_MARKER in line:
+                continue
             for pattern in patterns:
                 for match in pattern.finditer(line):
                     stem = match.group(1)
+                    if stem not in headings and FIELD_GUIDE_ALIAS + stem in headings:
+                        stem = FIELD_GUIDE_ALIAS + stem
                     if stem not in headings:
                         continue
                     for section in re.findall(r"§\s*(\d+(?:\.\d+)*)", match.group(2)):
-                        if section not in headings[stem]:
+                        key = (rel(path), number, f"{stem}§{section}")
+                        if section not in headings[stem] and key not in reported:
+                            reported.add(key)
                             report.error(path, number, f"{stem}.md has no numbered heading §{section}")
 
 
-def load_customer_terms(terms_file: Path) -> List[str]:
+def load_customer_terms(terms_files: List[Path]) -> List[str]:
     raw: List[str] = []
-    env_value = os.environ.get("BANNED_TERMS", "")
-    raw.extend(re.split(r"[,\n]", env_value))
-    if terms_file.exists():
-        raw.extend(read_lines(terms_file))
+    raw.extend(re.split(r"[,\n]", os.environ.get("BANNED_TERMS", "")))
+    for terms_file in terms_files:
+        if terms_file.exists():
+            raw.extend(read_lines(terms_file))
     return sorted({term.strip() for term in raw if term.strip() and not term.strip().startswith("#")})
 
 
-def iter_text_files(exclude: Path) -> Iterable[Path]:
+def term_pattern(term: str) -> "re.Pattern[str]":
+    """Match a term case-insensitively; any run of whitespace in the term matches whitespace, "_" or "-"."""
+    words = [re.escape(word) for word in term.split()]
+    return re.compile(r"(?<![A-Za-z0-9])" + r"[\s_-]+".join(words) + r"(?![A-Za-z0-9])", re.IGNORECASE)
+
+
+def iter_text_files(exclude: Set[Path]) -> Iterable[Tuple[Path, str]]:
+    """Yield every readable UTF-8 text file in the repository (binary files are skipped)."""
     for path in sorted(ROOT.rglob("*")):
-        if not path.is_file() or SKIP_DIRS.intersection(path.parts) or path == exclude:
+        if not path.is_file() or SKIP_DIRS.intersection(path.parts) or path.resolve() in exclude:
             continue
-        if path.suffix.lower() in TEXT_SUFFIXES or path.name in {"CODEOWNERS", ".gitignore"}:
-            yield path
+        try:
+            yield path, ZERO_WIDTH.sub("", path.read_text(encoding="utf-8"))
+        except UnicodeDecodeError:
+            continue
 
 
-def check_publication_safety(report: Report, terms_file: Path) -> int:
-    terms = load_customer_terms(terms_file)
-    term_patterns = [
-        (term, re.compile(r"(?<![A-Za-z0-9])" + re.escape(term) + r"(?![A-Za-z0-9])", re.IGNORECASE))
-        for term in terms
-    ]
-    for path in iter_text_files(exclude=terms_file):
-        for number, line in enumerate(read_lines(path), start=1):
+def check_publication_safety(report: Report, terms_files: List[Path]) -> int:
+    terms = load_customer_terms(terms_files)
+    term_patterns = [(term, term_pattern(term)) for term in terms]
+    exclude = {f.resolve() for f in terms_files}
+    for path, text in iter_text_files(exclude):
+        for number, line in enumerate(text.splitlines(), start=1):
             for label, pattern in SECRET_PATTERNS.items():
                 if pattern.search(line):
                     report.error(path, number, f"possible {label}")
             for label, pattern in ORG_IDENTIFIER_PATTERNS.items():
                 if pattern.search(line):
                     report.error(path, number, f"possible {label}; use a placeholder")
+            for email in EMAIL_PATTERN.finditer(line):
+                if email.group(1).lower() not in EMAIL_ALLOWED_DOMAINS:
+                    report.error(path, number, "possible email address; remove it")
+        flagged = set()
+        for number, line in enumerate(text.splitlines(), start=1):
             for term, pattern in term_patterns:
                 if pattern.search(line):
+                    flagged.add(term)
                     report.error(path, number, "customer or project term found (see private terms list)")
+        collapsed = re.sub(r"\s+", " ", text)  # catches terms wrapped across lines
+        for term, pattern in term_patterns:
+            if term not in flagged and pattern.search(collapsed):
+                report.error(path, 0, "customer or project term found across a line break (see private terms list)")
     return len(terms)
 
 
@@ -310,10 +400,17 @@ def main() -> int:
     parser.add_argument(
         "--terms-file",
         type=Path,
-        default=DEFAULT_TERMS_FILE,
-        help="file with customer terms to block, one per line (default: .customer-terms.txt)",
+        action="append",
+        help="file with customer terms to block, one per line; repeatable. Default: "
+        f"{USER_TERMS_FILE} and then .customer-terms.txt in the repository (BANNED_TERMS is always read too)",
+    )
+    parser.add_argument(
+        "--require-terms",
+        action="store_true",
+        help="fail when no private customer terms were loaded (used by CI when the BANNED_TERMS secret exists)",
     )
     args = parser.parse_args()
+    terms_files = [f.resolve() for f in (args.terms_file or DEFAULT_TERMS_FILES)]
 
     report = Report()
     check_skill_file(report)
@@ -322,7 +419,9 @@ def main() -> int:
     check_reference_listings(report)
     check_section_references(report)
     check_mcp_citations(report)
-    term_count = check_publication_safety(report, args.terms_file.resolve())
+    term_count = check_publication_safety(report, terms_files)
+    if args.require_terms and term_count == 0:
+        report.error(ROOT, 0, "no private customer terms loaded (set BANNED_TERMS or create a terms file)")
 
     report.print()
     errors, warnings = report.count("ERROR"), report.count("WARN")

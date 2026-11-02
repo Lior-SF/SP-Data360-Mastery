@@ -19,6 +19,11 @@ jobs:
       - name: Validate structure, links and publication safety
         env:
           # Optional repository secret: comma- or newline-separated customer
-          # names that must never appear in the published skill.
+          # names that must never appear in the published skill. Not available to
+          # pull requests from forks.
           BANNED_TERMS: ${{ secrets.BANNED_TERMS }}
-        run: python scripts/validate_skill.py
+        run: |
+          args="--strict"
+          # Fork pull requests get no secrets, so the term check is skipped there.
+          if [ -n "$BANNED_TERMS" ]; then args="$args --require-terms"; fi
+          python scripts/validate_skill.py $args

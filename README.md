@@ -3,7 +3,7 @@
 ## TL;DR
 
 - **What:** an open [Agent Skill](https://agentskills.io) (`SKILL.md` plus reference files) that turns an AI agent into a Salesforce Personalization (Data 360 / Marketing Cloud Next) expert. The same folder works in any client that loads that format, including Cursor, Claude Code, GitHub Copilot, Codex, and Gemini CLI. The full client list is at [agentskills.io/clients](https://agentskills.io/clients).
-- **Why trust it:** every documented fact cites current official Salesforce docs, and every file was independently re-verified. Lessons from real implementations that the docs don't state are labeled `(Field-observed, undocumented)`.
+- **Why trust it:** every documented fact cites current official Salesforce docs. Lessons from real implementations that the docs don't state are labeled `(Field-observed, undocumented)`. See [Accuracy model](#accuracy-model) for what was independently verified.
 - **Guards against the #1 mistake:** answering with Marketing Cloud Personalization (Interaction Studio / Evergage) knowledge.
 - **Use it for:**
   - jump-starting a new customer (discovery, architecture by site type and channel, setup order, go-live)
@@ -96,7 +96,7 @@ Clone into a folder named `sp-data360-mastery` so the folder matches the skill's
 git clone https://github.com/Lior-SF/SP-Data360-Mastery.git ~/.agents/skills/sp-data360-mastery
 ```
 
-For one project, clone into `.agents/skills/sp-data360-mastery` at the repo root. Commit that folder if the team should share the skill.
+For one project, clone into `.agents/skills/sp-data360-mastery` at the repo root. To commit it with the project, delete its `.git` folder first, or add it as a git submodule. Otherwise git records an embedded repository, not the files.
 
 | Client | All your projects | This project only |
 |---|---|---|
@@ -106,7 +106,7 @@ For one project, clone into `.agents/skills/sp-data360-mastery` at the repo root
 | Codex | `~/.codex/skills/` | `.codex/skills/` |
 | Gemini CLI | `~/.gemini/skills/` or `~/.agents/skills/` | `.gemini/skills/` or `.agents/skills/` |
 
-Cursor also loads skills placed in the Claude and Codex directories. Gemini CLI can install from the git URL:
+Check your client's documentation for the current skills folder path. Cursor also loads skills placed in the Claude and Codex directories. Gemini CLI can install from the git URL:
 
 ```bash
 gemini skills install https://github.com/Lior-SF/SP-Data360-Mastery.git --consent
@@ -126,6 +126,10 @@ git -C ~/.agents/skills/sp-data360-mastery pull
 
 Use the path you cloned into. Releases are tagged (`v1.0.0`, …); see [CHANGELOG.md](CHANGELOG.md) for what changed.
 
+**Installed version:** run `git -C <your skill folder> describe --tags` (or `git log -1`). The files carry no version number.
+
+Install by git clone only. Don't copy or zip the folder with a private terms file inside it; that file belongs outside the repository (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+
 ## How it works
 
 - Clients that implement Agent Skills load the skill when a prompt matches the description in `SKILL.md`.
@@ -134,13 +138,15 @@ Use the path you cloned into. Releases are tagged (`v1.0.0`, …); see [CHANGELO
 
 ## Accuracy model
 
-- **Baseline:** Salesforce release 264 (Winter '27) documentation, verified September 2026.
+- **Baseline:** Salesforce release 264 (Winter '27) documentation.
 - **`[src](url)`** — the fact is supported by that official page.
 - **`(UNVERIFIED)`** — useful, but not confirmed in documentation.
 - **`(Field-observed, undocumented)`** — behavior seen in real implementations but absent from documentation. Re-test after SDK upgrades.
-- **Sources:** restricted to Salesforce Personalization help, the Salesforce Personalization developer guide, the Salesforce Interactions SDK (Data 360) guide, Data 360 help, and release notes. MCP pages are cited only to explain differences.
+- **Sources:** Salesforce Personalization help, the Salesforce Personalization developer guide, the Salesforce Interactions SDK (Data 360) guide, Data 360 help, and release notes. Workshop and third-party sources are secondary and always labeled. MCP pages are cited only to explain differences.
+- **`(Field-verified)`** — behavior confirmed by testing in an org, not stated in documentation.
 - **`(inference)`** — reasoned from the cited documentation, not stated by it.
-- **Verification:** each reference file was researched from the documentation, then independently re-verified claim by claim, including an explicit check that every cited page belongs to Salesforce Personalization rather than MCP. Text added in v1.4.0 to v1.6.0, including the insights guide, got the same independent check in v1.6.1 against the release 264 documentation. Where two official pages disagree, the skill says so instead of picking one.
+- **`(workshop source)`** and **`(third-party)`** — a secondary source: a Salesforce partner workshop, or a site that isn't Salesforce. Treat these as hints, not documentation.
+- **Verification:** the files in v1.0.0 were researched from the documentation and independently re-verified claim by claim. The last full independent re-verification, in v1.6.1 (September 2026), covered the text added in v1.4.0 to v1.6.0 against the release 264 documentation, and each cited page was checked to belong to Salesforce Personalization rather than MCP. Later additions (v1.7.0 onward, including `headless-decisions.md`) were not independently re-verified. They are cited or labeled `(UNVERIFIED)`, `(Field-observed, undocumented)`, `(Field-verified)` or `(inference)`. See [CHANGELOG.md](CHANGELOG.md). Where two official pages disagree, the skill says so instead of picking one.
 
 ## Report a problem or contribute
 

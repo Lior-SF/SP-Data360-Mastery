@@ -2,9 +2,9 @@
 
 ## Scope
 - SQL for Salesforce Personalization (SP) reporting and debugging on Data 360: views and clicks per point, decision breakdowns, daily trends, unified-individual counts, calculated insights (CIs), SP's own attribution sample, decision latency, orphan engagement events, and identity checks.
-- Run ad-hoc SQL in Query Editor, which queries DLOs, DMOs, calculated insight objects (CIOs), and data graphs; you need data space access to each object, and creating queries needs the `Data Cloud Activation Specialist` permission set [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor_create_queries.htm&release=264.0.0&type=5). Tableau and DBeaver are the other integrated apps [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/int-apps-data-cloud.html). Save recurring metrics as CIs, which need `Data Cloud Architect` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
+- Run ad-hoc SQL in Query Editor, which queries DLOs, DMOs, calculated insight objects (CIOs), and data graphs; you need data space access to each object, and creating queries needs the `Data Cloud Activation Specialist` permission set (UNVERIFIED: confirm the label in Setup) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor_create_queries.htm&release=264.0.0&type=5). Tableau and DBeaver are the other integrated apps [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/int-apps-data-cloud.html). Save recurring metrics as CIs, which need `Data Cloud Architect` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
 - Status tags: `field-verified (Query Editor)` ran successfully in a live SP org; `doc-derived (untested)` uses only documented object, field, and function names but hasn't been run; `doc sample (verbatim)` is copied from SP Help.
-- Every query assumes the default data space (`ssot__` names) and the Website Engagement destination used by Dynamic Content (formerly Manual Content), except Q4b (Product Browse Engagement); see "Joins and values" to switch channels. Placeholders: `<POINT_ID>`, `<PAGE_TYPE>`, `<RULESET_ID>`, `<START_DATE>`, `<END_DATE>`, `<CI_API_NAME>`. Q4b also uses `<PRODUCT_BROWSE_ENGAGEMENT_DMO>`, `<ACTION_FIELD>`, `<PERSONALIZATION_CONTENT_ID_FIELD>` and `<DATETIME_FIELD>`.
+- Every query assumes the default data space (`ssot__` names) and the Website Engagement destination used by Dynamic Content (formerly Manual Content), except Q4b (Product Browse Engagement); see "Joins and values" to switch channels. Placeholders: `<POINT_ID>`, `<PAGE_TYPE>`, `<LINK_DMO>` (link object API name without `__dlm`; see Q5), `<RULESET_ID>`, `<START_DATE>`, `<END_DATE>`, `<CI_API_NAME>`. Q4b also uses `<PRODUCT_BROWSE_ENGAGEMENT_DMO>`, `<ACTION_FIELD>`, `<PERSONALIZATION_CONTENT_ID_FIELD>` and `<DATETIME_FIELD>`.
 
 ## Rules
 
@@ -26,10 +26,10 @@
 - Every CI needs at least one measure, and every non-aggregated `SELECT` field is a dimension that must appear in `GROUP BY` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_general_sql_rules.htm&release=264.0.0&type=5).
 - No aggregate inside an aggregate; `WHERE` can't contain aggregates or aliases; `GROUP BY` may reference dimension aliases (not inside expressions) but never measure aliases; currency fields require `TRY_CONVERT_CURRENCY` in `SELECT` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_general_sql_rules.htm&release=264.0.0&type=5).
 - Rollups: aggregatable measures (`SUM`, `COUNT`, `AVG`, `MIN`, `MAX`) can be queried on any subset of dimensions. Non-aggregatable ones (`APPROX_COUNT_DISTINCT`, `CASE` wrapping an aggregate, `RANK`, `NTILE`) need all dimensions whenever they're queried [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_aggregates.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_general_sql_rules.htm&release=264.0.0&type=5); reports show them only after you add every dimension [src](https://help.salesforce.com/s/articleView?id=analytics.rd_dc_reports_calculated_insights_limits.htm&release=264.0.0&type=5).
-- An aggregatable insight accepts only aggregatable measures [src](https://help.salesforce.com/s/articleView?id=data.c360_a_edit_a_calculated_insight_in_customer_data_platform.htm&release=264.0.0&type=5), so keep counts and uniques in separate CIs (Q6a, Q6b). `SUM(CASE WHEN … THEN 1 ELSE 0 END)` is a `CASE` inside `SUM`, not an aggregate inside `CASE`, so it should stay aggregatable (inference).
+- An aggregatable insight accepts only aggregatable measures [src](https://help.salesforce.com/s/articleView?id=data.c360_a_edit_a_calculated_insight_in_customer_data_platform.htm&release=264.0.0&type=5), so keep counts and uniques in separate CIs (Q6a, Q6b). `SUM(CASE WHEN … THEN 1 ELSE 0 END)` is a `CASE` inside `SUM`, not an aggregate inside `CASE`, so whether it stays aggregatable is UNVERIFIED; Q6a uses `COUNT` only, and CASE-based CIs ([measurement-and-attribution.md](measurement-and-attribution.md) §8.6) should be reported with all dimensions until checked.
 - DMO names are case-sensitive; copy them from the Object API Name column on the Data Model tab [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
 - Limits: 10 dimensions, 50 measures, 300 CIs per tenant, 4 nested CIs, a 2-hour runtime, and 30 manual runs per 24 hours [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5); SQL up to 131,021 characters [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
-- Schedules: every 1, 6, 12, or 24 hours, or `Not Scheduled`. A run still in progress makes the next one skip, start times round to 30-minute increments, and the user's time zone applies [src](https://help.salesforce.com/s/articleView?id=data.c360_a_schedule_a_calculated_insight_in_data_cloud.htm&release=264.0.0&type=5). A CI doesn't run when source data, mappings, and configuration are unchanged [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
+- Schedules: every 1, 6, 12, or 24 hours, or `Not Scheduled`. A run still in progress makes the next one skip, 15-minute start times round to the next 30 minutes, and the user's time zone applies [src](https://help.salesforce.com/s/articleView?id=data.c360_a_schedule_a_calculated_insight_in_data_cloud.htm&release=264.0.0&type=5). A CI doesn't run when source data, mappings, and configuration are unchanged [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 - After creation you can't change a measure's API name, data type, or rollup behavior, remove measures or dimensions, or add a dimension unless it's a key qualifier dimension [src](https://help.salesforce.com/s/articleView?id=data.c360_a_edit_a_calculated_insight_in_customer_data_platform.htm&release=264.0.0&type=5). Get the design right before you activate.
 - Streaming and real-time insights support only `SUM` and `COUNT` per the 264 SQL functions page [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_aggregates.htm&release=264.0.0&type=5). A 262 release note adds `Min` and `Max` to the real-time Aggregate node (June 2026) [src](https://help.salesforce.com/s/articleView?id=release-notes.rn_cdp_2026_summer_realtime_insights_advanced_functions.htm&release=262.0.0&type=5); confirm in the builder.
 - Segments: the Segment On DMO must be Profile type, the CI must join the segmented table and include its primary key as a dimension, and a non-aggregatable measure is hidden in the segment builder if the CI has a date dimension [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_in_segments.htm&release=264.0.0&type=5). Validate a CI in Data Explorer before using it in a segment [src](https://help.salesforce.com/s/articleView?id=data.c360_a_validate_an_insight_in_data_cloud.htm&release=264.0.0&type=5).
@@ -42,12 +42,12 @@
 - If an unquoted identifier doesn't bind, double-quote it (`"ssot__Id__c"`): the Semantic Layer docs say Data 360 identifiers are case-sensitive and unquoted ones are case-folded [src](https://developer.salesforce.com/docs/data/semantic-layer/guide/query-api-in-depth-logical-views.html). (UNVERIFIED for Query Editor, where Q1 and Q2 ran unquoted.)
 
 ### Joins and values used below
-- Website Engagement → Personalization Log is a documented many-to-one relationship, and the log's `Id` must store the Personalization Content Id [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-website-engagement-dmo.html) [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationlogdmo-dmo.html). Join on `w.ssot__PersonalizationContentId__c = p.ssot__Id__c` (field-verified). Website Engagement has no point field of its own.
+- Website Engagement → Personalization Log is a documented many-to-one relationship, and the log's `Id` must store the Personalization Content Id [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-website-engagement-dmo.html) [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-personalizationlogdmo-dmo.html). Join on `w.ssot__PersonalizationContentId__c = p.ssot__Id__c` (field-verified for Website Engagement; the SP developer guide's log field list also shows a `PersonalizationContentId__c` column, so for other engagement DMOs confirm which log column holds the content ID (UNVERIFIED)). Website Engagement has no point field of its own.
 - Log → point, decision, personalizer: `ssot__PersonalizationPointId__c`, `ssot__PersonalizationDecisionId__c`, `ssot__PersonalizerId__c` equal each object's `ssot__Id__c`; display names are in `ssot__Name__c` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_references_daily_personalization_requests_ci_ref.htm&release=264.0.0&type=5).
 - `ssot__EngagementChannelActionId__c` holds `personalization-view` / `personalization-click` for the Website Engagement destination (field-verified). Recommendation experiences using Product Engagement land in Product Browse Engagement as `catalog-object-view-start` / `catalog-object-click`, and custom destinations can rename interactions [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/track-personalization-engagement.html).
 - On web events, `ssot__IndividualId__c` is the source Individual keyed by the device ID, not a person (the web mapping sends `deviceId` → Individual ID [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-salesforce-interactions-sdk.html)); use Q5 for people.
 - Other channels: substitute `<ENGAGEMENT_DMO>` (for example `ssot__ProductBrowseEngagement__dlm`, or the `std__…Dmo__dlm` / `{prefix}__` form your org exposes) and `<VIEW_ACTION>` / `<CLICK_ACTION>` (for example `catalog-object-view-start` / `catalog-object-click`), keeping the join `<ENGAGEMENT_DMO>.…PersonalizationContentId__c = <PERSONALIZATION_LOG_DMO>.…Id__c`. The FK is documented on the DMOs listed in measurement-and-attribution.md §1.6, for example Product Browse Engagement [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-si-productbrowseengagementdmo-dmo.html). Field-verified results come from one org; re-verify names in the target org's Data Model tab.
-- Take point IDs from the log (Q2). Setup-UI URL IDs (`0Wl…`) don't match log IDs (`9pp…`) (Field-observed, undocumented).
+- Take point IDs from the log (Q2). Setup-UI URL IDs (prefix `<UI_ID_PREFIX>`) don't match log IDs (prefix `<LOG_ID_PREFIX>`); Salesforce IDs start with a 3-character key prefix (inference).
 
 ## Queries
 
@@ -130,7 +130,7 @@ GROUP BY 1
 ORDER BY 1
 ```
 - `date_trunc` on a `timestamp with time zone` truncates in the current time zone by default [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/dc-sql-reference/datetime-func.html), and the event `dateTime` comes from the visitor's clock, which can be skewed [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-event-structure.html).
-- This is event CTR. Attribution funnels count individuals per stage, so their conversion rates differ by design [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_pers_attrib_intelligence_using.htm&release=264.0.0&type=5).
+- This is event CTR. Attribution funnels use individual-based entrance counts and conversions per later stage (individual vs event counting UNVERIFIED), so their rates differ from event CTR [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_pers_attrib_intelligence_using.htm&release=264.0.0&type=5).
 
 ### Q4b. Views and clicks per point and decision for Recommendations points — `doc-derived (untested)`
 Purpose: the Product Engagement destination (`eventType` `catalog`, `catalog-object-view-start` / `catalog-object-click`, recommended DMO Product Browse Engagement; payload carries `personalizationId` and `personalizationContentId`) [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/track-personalization-engagement.html). Field names vary by mapping; confirm them in the Data Model tab.
@@ -144,7 +144,7 @@ JOIN ssot__PersonalizationLog__dlm pl ON pbe.<PERSONALIZATION_CONTENT_ID_FIELD> 
 WHERE pbe.<DATETIME_FIELD> >= CAST('<START_DATE>' AS DATE)
 GROUP BY 1, 2
 ```
-- Combine with a Website Engagement query (Q3) through `UNION ALL` for a mixed Dynamic Content + Recommendations report.
+- To combine with a Website Engagement query through `UNION ALL` (mixed Dynamic Content + Recommendations report), select the same columns in the same order in both, for example `point_id, decision_id, views, clicks` (Q3 as written has a different select list).
 
 ### Q5. Unified individuals for an identity resolution ruleset — `doc-derived (untested)`
 Purpose: count people instead of devices.
@@ -156,15 +156,15 @@ SELECT w.ssot__EngagementChannelActionId__c AS action,
 FROM ssot__WebsiteEngagement__dlm w
 JOIN ssot__PersonalizationLog__dlm p
   ON w.ssot__PersonalizationContentId__c = p.ssot__Id__c
-LEFT JOIN UnifiedLinkIndividual<RULESET_ID>__dlm l
+LEFT JOIN <LINK_DMO>__dlm l
   ON w.ssot__IndividualId__c = l.SourceRecordId__c
 WHERE p.ssot__PersonalizationPointId__c = '<POINT_ID>'
   AND w.ssot__EngagementChannelActionId__c IN ('personalization-view', 'personalization-click')
 GROUP BY w.ssot__EngagementChannelActionId__c
 ```
-- Finding the link DMO: a ruleset without a ruleset ID produces `IndividualIdentityLink__dlm`; with a ruleset ID, the ID is appended to the names, for example `UnifiedLinkIndividualTest__dlm` and `UnifiedssotIndividualTest__dlm` for ruleset `Test`. Link fields are `SourceRecordId__c` (Individual Id) and `UnifiedRecordId__c` (Unified Individual Id) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_data_modeling_unified_and_link_objects.htm&release=264.0.0&type=5).
+- `<LINK_DMO>__dlm` is the full link object name. A ruleset without a ruleset ID produces `IndividualIdentityLink__dlm` (so `<LINK_DMO>` = `IndividualIdentityLink`). With a ruleset ID the name changes shape, for example `UnifiedLinkIndividualTest__dlm` and `UnifiedssotIndividualTest__dlm` for ruleset `Test`; the doc examples are inconsistent, so copy the real name from the Data Model tab. Link fields are `SourceRecordId__c` (Individual Id) and `UnifiedRecordId__c` (Unified Individual Id) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_data_modeling_unified_and_link_objects.htm&release=264.0.0&type=5).
 - The ruleset ID is optional, up to four characters, and can't be changed; the creation wizard tells you to note the DMO names it generates [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_ruleset_create.htm&release=264.0.0&type=5). Otherwise open the Identity Resolutions tab for the ruleset ID, or search "Unified Link Individual" on the Data Model tab.
-- The documented CI join pattern is Source → `IndividualIdentityLink__dlm.SourceRecordId__c`, then `UnifiedRecordId__c` → `UnifiedIndividual__dlm.ssot__Id__c` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_aggregates.htm&release=264.0.0&type=5).
+- The documented CI join pattern (no ruleset ID) is Source → `IndividualIdentityLink__dlm.SourceRecordId__c`, then `UnifiedRecordId__c` → `UnifiedIndividual__dlm.ssot__Id__c` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_aggregates.htm&release=264.0.0&type=5).
 - `people_estimate` counts unlinked devices as one person each (inference); individuals appear in the link DMO only after the ruleset processes them (inference).
 
 ### Q6. Calculated insight versions of Q1 — `doc-derived (untested)`
@@ -224,9 +224,10 @@ GROUP BY 1,2,3,4
 ORDER BY AttributionDate__c ASC;
 ```
 Inconsistencies in the docs:
+- The sample multiplies a ratio of two sums by 100 with no decimal literal; on engines that use integer division this truncates (UNVERIFIED which applies here). The adapted query below uses `100.0 *`.
 - `scm_PersonalizationPointViewAttribution__dlm` isn't a deployed name. Attribution Intelligence deploys `{dataspacePrefix}_{irSuffix}_PersnlPointFirstTouchViewAttr__dlm` and `..._PersnlPointLastTouchViewAttr__dlm` (plus `PersnlContent…` equivalents). The default data space adds no prefix; no ruleset adds no suffix; a ruleset with an empty suffix adds `e_s_`; a ruleset starting with a number in the default data space gets an `n_s_{irSuffix}` prefix [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_pers_attribution_intel_data_deploy.htm&release=264.0.0&type=5). `scm_` reads like a data space prefix.
 - `AttributedOrdersCount__c` is on neither **point** DMO. Point First Touch has `AttributedOrderCount__c` and `AttributedOrdersPlaced__c`; point Last Touch has only `AttributedOrdersPlaced__c` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalization-point-view-attribution-dmo.html) [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalization-point-click-attribution-dmo.html). Content Last Touch also has `AttributedOrderCount__c` and `AttributedOrdersPlaced__c` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalization-content-click-attribution.html).
-- The field names split by model. First Touch uses `RootPersonalizationPoint__c`, `AttributedClickCount__c`, and has `AttributedViewsCount__c`; Last Touch uses `PersonalizationPoint__c`, `AttributedClicksCount__c`, and has no views field, so the sample's conversion rate can't run on it. The Last Touch object API name is printed as `PersnlPointLastTouchViewAttr__dmo` and lives at a `-click-attribution` URL (same sources).
+- For the two **point** DMOs the field names split by model (the content DMOs differ, see [measurement-and-attribution.md](measurement-and-attribution.md) §2.1). Point First Touch uses `RootPersonalizationPoint__c`, `AttributedClickCount__c`, and has `AttributedViewsCount__c`; point Last Touch uses `PersonalizationPoint__c`, `AttributedClicksCount__c`, and has no views field, so the sample's order ratio can't run on it. The Last Touch object API name is printed as `PersnlPointLastTouchViewAttr__dmo` and lives at a `-click-attribution` URL (same sources).
 - First Touch describes `AttributedViewsCount__c` as "Number of orders attributed to personalization views", which is a copy error [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/personalization-point-view-attribution-dmo.html).
 - Top-level `ORDER BY` makes this Query Editor or JDBC SQL; it isn't valid CI SQL [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_general_sql_rules.htm&release=264.0.0&type=5). Summing `UniqueProfileCount__c` across dates over-counts people active on several days (inference).
 - The sibling pipeline samples mix dialects and field generations: "View Personalization Pipeline Metrics by Date" uses `approx_distinct` with `RequestStartDateTime__c`, `ResponseTimeMillis__c`, and `NumContentItems__c` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_view_pipeline_metrics_by_date.htm&release=264.0.0&type=5); "Get Information About Personalization Pipeline Requests" uses `to_iso8601` with `RequestDateTime__c` and `ResponseTimeMillisecond__c` on the same `PersonalizationLog__dlm` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_analytics_query_pipeline_request_results.htm&release=264.0.0&type=5). The Query API V3 replacements are `approx_count_distinct` and `TO_CHAR` [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/query-api-migration.html), and SP's own CIs use `ssot__RequestDateTime__c` / `ssot__ResponseTimeMillisecond__c`.
@@ -243,13 +244,14 @@ SELECT AttributionDate__c,
        SUM(AttributedCartsCount__c) AS carts,
        SUM(AttributedOrdersPlaced__c) AS orders,
        SUM(AttributedRevenue__c) AS revenue,
-       100.0 * SUM(AttributedOrdersPlaced__c) / NULLIF(SUM(AttributedViewsCount__c), 0) AS order_conversion_pct
+       100.0 * SUM(AttributedOrdersPlaced__c) / NULLIF(SUM(AttributedViewsCount__c), 0) AS orders_per_100_views
 FROM PersnlPointFirstTouchViewAttr__dlm   -- replace with the deployed API name from the Data Model tab
 WHERE AttributionDate__c >= DATE '<START_DATE>' AND AttributionDate__c < DATE '<END_DATE>'
 GROUP BY 1, 2, 3, 4
 ORDER BY 1
 ```
-- For Last Touch, use `PersonalizationPoint__c` and `AttributedClicksCount__c`, and drop views and the conversion rate.
+- `orders_per_100_views` is attributed orders over attributed views (end to end). The Analytics-tab funnel instead shows stage-to-stage rates (for example orders/carts), so the two aren't comparable.
+- For Last Touch, use `PersonalizationPoint__c` and `AttributedClicksCount__c`, and drop views and the ratio.
 - Predefined attribution requires Product Browse, Shopping Cart, and Product Order Engagement objects [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_pers_attribution_intel_data_deploy.htm&release=264.0.0&type=5); a manual-content-only site may have empty attribution DMOs (inference).
 
 ### Q8. Decision latency per point — `doc-derived (untested)`
@@ -294,23 +296,28 @@ FROM ssot__PartyIdentification__dlm pi
 GROUP BY 1, 2
 ORDER BY 3 DESC;
 
-/* Q10b: most shared identification numbers; placeholders such as NA or 0 surface here */
-SELECT pi.ssot__Identificationnumber__c AS identification_number,
-       COUNT(DISTINCT pi.ssot__PartyId__c) AS individuals
-FROM ssot__PartyIdentification__dlm pi
-GROUP BY 1
-ORDER BY 2 DESC
+/* Q10b (masked): how many identification numbers are shared by N individuals, by value length; placeholders such as NA or 0 show as short, widely shared values */
+SELECT t.individuals_sharing,
+       t.id_length,
+       COUNT(*) AS identification_numbers
+FROM (SELECT pi.ssot__Identificationnumber__c AS id_value,
+             LENGTH(pi.ssot__Identificationnumber__c) AS id_length,
+             COUNT(DISTINCT pi.ssot__PartyId__c) AS individuals_sharing
+      FROM ssot__PartyIdentification__dlm pi
+      GROUP BY 1, 2) t
+GROUP BY 1, 2
+ORDER BY 1 DESC
 LIMIT 20;
 
-/* Q10c: largest unified profiles; swap in the ruleset's link DMO from Q5 */
+/* Q10c: largest unified profiles; <LINK_DMO> as defined in Q5 */
 SELECT l.UnifiedRecordId__c AS unified_individual,
        COUNT(*) AS linked_individuals
-FROM IndividualIdentityLink__dlm l
+FROM <LINK_DMO>__dlm l
 GROUP BY 1
 ORDER BY 2 DESC
 LIMIT 20;
 ```
-- Run each statement separately. Q10b's output contains member identifiers, so don't paste it into tickets or chat.
+- Run each statement separately. Q10b is masked (counts and lengths only). A raw-value variant, selecting `pi.ssot__Identificationnumber__c` itself, is **sensitive**: it returns member identifiers, so don't run it unless needed and never paste it into tickets or chat.
 - Compare Q10a with the match rule's Party Identification Type and Name values [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_real_time_identity_resolution_for_einstein_personalization.htm&release=264.0.0&type=5). Placeholder values are a documented cause of oversized unified profiles, and identity resolution can't combine more than 50,000 records into one unified profile [src](https://help.salesforce.com/s/articleView?id=data.c360_a_resolution_troubleshooting_ir_errors.htm&release=264.0.0&type=5).
 - Next steps when a rule matches nothing: group Party Identification by data source as well as Name and Type, then run the web-to-CRM acceptance query on the link object with a negative control ([field-guide-data.md](field-guide-data.md) §4).
 - Q10b uses the DMO page spelling `ssot__Identificationnumber__c`; identity resolution troubleshooting writes `ssot__IdentificationNumber__c`. If one fails, use the other or the Query Editor field picker.

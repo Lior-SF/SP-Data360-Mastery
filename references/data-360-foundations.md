@@ -5,7 +5,7 @@
 - The Data 360 data layer that Salesforce Personalization (SP) reads: data streams, data lake objects (DLOs), data model objects (DMOs), mapping, the identity DMOs, identity resolution rulesets (match and reconciliation rules), unified outputs, and the data graphs that personalization points evaluate. Applies to any industry, channel and data source.
 - Read this file for **how the platform works** (documented objects, rules, limits, names). Read [field-guide-data.md](field-guide-data.md) for **field-verified design lessons** (party-identifier design, "Match to", billable reruns, connector mapping traps) and [sql-cookbook.md](sql-cookbook.md) for **reporting SQL** (views, clicks, CTR, unified counts). Data graph use inside points and decisions: [decisioning.md](decisioning.md) §1–§2. Web identity events: [web-sdk-and-sitemap.md](web-sdk-and-sitemap.md) §4.
 - Baseline: Data 360 Help and developer docs at release 264.0.0. Labels: "(Field-observed, undocumented)" = seen in implementations, absent from docs; "(inference)" = reasoned from cited docs; "(UNVERIFIED)" = neither documented nor field-tested. The UI still shows "Data Cloud" in many labels.
-- Placeholders: `<DLO_API_NAME>`, `<LINK_DMO>` (the ruleset's link object name without `__dlm`), `<TEST_SOURCE_ID>`, `<ID_NAME>`, `<ID_TYPE>`.
+- Placeholders: `<DLO_API_NAME>`, `<LINK_DMO>` (link object API name without `__dlm`, so `<LINK_DMO>__dlm` is the full name; `IndividualIdentityLink` when the ruleset has no ID, see § Outputs and naming), `<UNIFIED_DMO>` (same idea for the unified object, `UnifiedIndividual` without a ruleset ID), `<TEST_SOURCE_ID>`, `<ID_NAME>`, `<ID_TYPE>`.
 
 ## Data pipeline: data stream → DSO → DLO → DMO
 
@@ -26,7 +26,7 @@
 
 | Category | Use for | Rules |
 |---|---|---|
-| Profile | People, accounts, or any entity you segment, unify or enrich (devices, loyalty cards…) | Profile DLOs map to Profile or Other DMOs, never Engagement [src](https://help.salesforce.com/s/articleView?id=data.c360_a_category.htm&release=264.0.0&type=5) |
+| Profile | People, accounts, or any entity you segment, unify or enrich (devices, memberships…) | Profile DLOs map to Profile or Other DMOs, never Engagement [src](https://help.salesforce.com/s/articleView?id=data.c360_a_category.htm&release=264.0.0&type=5) |
 | Engagement | Time-series events | Requires an **Event Time Field** (Date/DateTime), not editable after setup; a mutable date (Updated Date, file extract date) duplicates rows with the same primary key. Engagement DLOs map only to Engagement DMOs [src](https://help.salesforce.com/s/articleView?id=data.c360_a_category.htm&release=264.0.0&type=5) |
 | Other | Reference data (catalogs, stores, models); time-series data without an immutable date | Maps to Profile or Other DMOs [src](https://help.salesforce.com/s/articleView?id=data.c360_a_category.htm&release=264.0.0&type=5) |
 
@@ -74,7 +74,7 @@
 | `<Name>__dll` | DLO API name suffix; for example a UDLO named `X` is queried as `X__dll` [src](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-azure-udlo.html). DLO names: alphanumerics and underscores, start with a letter, no trailing or double underscore, ≤ 40 characters [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_lake_object_naming.htm&release=264.0.0&type=5) |
 | `<Name>__dlm` | DMO API name suffix, for example `ssot__Individual__dlm` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_data_modeling_individual.htm&release=264.0.0&type=5) |
 | `ssot__` | Standard (legacy) DMOs and fields in the default data space; the `std__…Dmo__dlm` set and custom-field forms are in [sql-cookbook.md](sql-cookbook.md) "Names" |
-| `{prefix}_…` | Other data spaces: a 1–3 character prefix fixed at creation, for example `DS1_Individual_dlm` in the doc sample [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_spaces_create.htm&release=264.0.0&type=5) |
+| `{prefix}_…` | Other data spaces: a 1–3 character prefix fixed at creation, for example `DS1_Individual_dlm` in the doc sample (one underscore and `_dlm`, unlike the `{prefix}__` form in [sql-cookbook.md](sql-cookbook.md) "Names"; confirm in Data Explorer) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_spaces_create.htm&release=264.0.0&type=5) |
 | `__cio` | Calculated insight objects ([sql-cookbook.md](sql-cookbook.md) Q6) |
 
 ### Data spaces
@@ -118,7 +118,7 @@ Source: [src](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c3
 - The SP guide's mapping differs from the Data 360 table [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-salesforce-interactions-sdk.html):
   - it maps `deviceId` → **Party** as well as the primary key on Party Identification, Contact Point Email and Contact Point Phone; the Data 360 table has no Party rows, yet identity resolution requires Party → Individual on each [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_data_modeling_individual.htm&release=264.0.0&type=5). Follow the SP guide.
   - it says to leave the Contact Point Address DLO unmapped;
-  - it maps `phoneNumber` → Telephone Number (the SDK translation table also uses `phoneNumber` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html)) where the Data 360 table shows `phone` → Phone Number, and adds `userName` → External Record ID and `dateTime` → Created Date on the profile objects. Use the field names in your uploaded schema.
+  - it maps `phoneNumber` → Telephone Number (the SDK translation table also uses `phoneNumber` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html)) where the Data 360 table shows `phone` → Phone Number, and lists `userName` → External Record ID and `dateTime` → Created Date on the profile objects, where the Data 360 table maps `dateTime` only on `identity` (inference). Use the field names in your uploaded schema.
 - Because profile objects are keyed on `deviceId`, each browser or app install is one source Individual with at most one row per profile object; a new email from the same device overwrites the previous one under Partial refresh (inference from the primary key).
 - Mobile: the Engagement Mobile SDK sends the same profile event families through the mobile app connector ([mobile-and-channels.md](mobile-and-channels.md) §1.9).
 - Automatic anonymous `identity` event, `isAnonymous` conventions and payload rules: [web-sdk-and-sitemap.md](web-sdk-and-sitemap.md) §4.
@@ -134,7 +134,7 @@ Source: [src](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c3
 
 - Permission: `Data Cloud Architect`. Disable `Run jobs automatically` while configuring and use **Run Now**; keep one active ruleset to reduce cost [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_ruleset_create.htm&release=264.0.0&type=5).
 - Optional filter conditions on primary-DMO fields gate which source records enter matching [src](https://help.salesforce.com/s/articleView?id=data.c360_a_match_rules_configure.htm&release=264.0.0&type=5); without them a ruleset takes every source record of its primary DMO in its data space, with no per-stream "connect" step (inference). Every ruleset keeps at least one match rule (same src).
-- Hard limits (5 rulesets per primary DMO and data space, 10 rules of 10 criteria, scheduled once a day, 15 KB record size, 50,000 source profiles and 75 identifiers per unified profile) and billable full-rerun triggers: [field-guide-data.md](field-guide-data.md) §1.2–§1.3 [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
+- Hard limits (5 rulesets per primary DMO and data space, 10 rules of 10 criteria, 4 ruleset jobs per ruleset per data space per 24 hours, 15 KB record size, 50,000 source profiles and 75 identifiers per unified profile) and billable full-rerun triggers: [field-guide-data.md](field-guide-data.md) §1.2–§1.3 [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 
 ### Match rules
 
@@ -162,9 +162,9 @@ Source: [src](https://help.salesforce.com/s/articleView?id=data.c360_a_match_rul
 
 ### Real-time matching, schedule and triggers
 
-- Real-time runs every criterion as Exact or Exact Normalized regardless of the configured method, ignore Match on Blank, and the data is re-unified in the next scheduled run [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_real_time.htm&release=264.0.0&type=5). Only email and phone use Exact Normalized; all other fields are Exact. An input that isn't an exact match returns no profile. The real-time graph receives scheduled-run unified profiles once a day, and reconciliation rules are the same in all modes [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_match_type_compare.htm&release=264.0.0&type=5).
+- Real-time matching runs every criterion as Exact or Exact Normalized regardless of the configured method, ignores Match on Blank, and the data is re-unified in the next scheduled run [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_real_time.htm&release=264.0.0&type=5). Only email and phone use Exact Normalized; all other fields are Exact. An input that isn't an exact match returns no profile. The real-time graph receives scheduled-run unified profiles once a day, and reconciliation rules are the same in all modes [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_match_type_compare.htm&release=264.0.0&type=5).
 - Real-time unification needs an **Individual-based** ruleset whose output Unified Individual is the basis of a **real-time data graph** [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_unify_realtime.htm&release=264.0.0&type=5), created after the ruleset's first run completes [src](https://help.salesforce.com/s/articleView?id=data.c360_a_match_rules_configure.htm&release=264.0.0&type=5). The docs describe no other real-time switch on the ruleset (inference).
-- Scheduled processing: every 60 minutes to 24 hours depending on source; up to 18 hours after initial ingestion, a full refresh or a batch over 1 million records; streaming connectors after 1 hour or 500 changes; Web SDK real-time data immediately. Batch and federated records are hashed first, so unchanged records aren't rerun even after a full refresh [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_processing_frequency.htm&release=264.0.0&type=5). Rulesets run at least once a day after publication [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_ruleset_create.htm&release=264.0.0&type=5).
+- Scheduled processing: every 60 minutes to 24 hours depending on source; up to 18 hours after initial ingestion, a full refresh or a batch over 1 million records; streaming connectors after 1 hour or 500 changes; Web SDK real-time data immediately. Batch and federated records are hashed first, so unchanged records aren't rerun even after a full refresh [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_processing_frequency.htm&release=264.0.0&type=5). The ruleset page says rulesets run "at least once a day" after publication, which doesn't fit the 60-minute to 24-hour range above; treat the exact cadence as source-dependent (UNVERIFIED) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_ruleset_create.htm&release=264.0.0&type=5).
 
 ### Outputs and naming
 
@@ -177,6 +177,7 @@ Source: [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_
 
 - Every link object has `SourceRecordId__c` (source record Id), `UnifiedRecordId__c` (unified Id), `ssot__DataSourceId__c`, `ssot__DataSourceObjectId__c`, `CreatedDate__c`, `ssot__InternalOrganizationId__c`, plus any key qualifier fields; unified and link objects are 1:1 related (same src).
 - Account rulesets produce `UnifiedLinkssotAccount__dlm` (same src). The doc's `Test` example is internally inconsistent (`UnifiedContactPointEmailTest__dlm` without `ssot`, `UnifiedLinkPartyIdentificationFzzy__dlm`), so copy real names from the Data Model tab.
+- In the queries below, `<LINK_DMO>__dlm` is the Unified Link Individual object: `IndividualIdentityLink__dlm` without a ruleset ID; with one, copy the name from the Data Model tab (doc example `UnifiedLinkIndividualTest__dlm`). `<UNIFIED_DMO>__dlm` is the Unified Individual object likewise.
 
 ### Consolidation rate
 
@@ -213,7 +214,7 @@ Source: [src](https://help.salesforce.com/s/articleView?id=data.c360_a_reconcili
 - **Types:** near real-time (standard) and real-time. Builder: App Launcher → **Data Graphs** → **New** → **Start from Scratch**; permission `Data Cloud Architect` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_create_a_data_graph.htm&release=264.0.0&type=5).
 - **Primary DMO** decides which related objects are reachable; primary key, key qualifier and foreign keys are pre-selected [src](https://help.salesforce.com/s/articleView?id=data.c360_a_create_a_data_graph.htm&release=264.0.0&type=5). Any category except Engagement can be primary; related objects can be Profile, Other or Engagement; the result is one flattened, read-only JSON record per root [src](https://help.salesforce.com/s/articleView?id=data.c360_a_data_graph_data_structures.htm&release=264.0.0&type=5). The root key is the primary DMO's primary key [src](https://help.salesforce.com/s/articleView?id=data.c360_a_add_remove_root_key_ind.htm&release=264.0.0&type=5).
 - **SP choice:** Unified Individual for real-time identity resolution [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_data_graphs_using.htm&release=264.0.0&type=5) (that page also says the profile graph "must be" real-time, while the point-level pages allow standard graphs for outbound and batch: [decisioning.md](decisioning.md) §1.2); recommender graphs need a Unified Individual, Individual or Account primary DMO [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_recommender_considerations.htm&release=264.0.0&type=5).
-- **Relationships:** real-time graphs join only through the **parent's primary key** [src](https://help.salesforce.com/s/articleView?id=data.c360_a_create_a_data_graph.htm&release=264.0.0&type=5) and allow only 1:1 and 1:N; N:1 is blocked in new or edited real-time graphs, while older N:1 graphs keep running with delayed parent updates. Standard graphs support N:1 [src](https://help.salesforce.com/s/articleView?id=data.c360_a_dg_n1_restriction.htm&release=264.0.0&type=5). Relate profile-extension data to Individual or Unified Individual by their primary key ([decisioning.md](decisioning.md) §1.3).
+- **Relationships:** real-time graphs join only through the **parent's primary key** [src](https://help.salesforce.com/s/articleView?id=data.c360_a_create_a_data_graph.htm&release=264.0.0&type=5) and allow only 1:1 and 1:N; N:1 is blocked in new or edited real-time graphs, while older N:1 graphs keep running with delayed parent updates. Standard graphs support N:1 [src](https://help.salesforce.com/s/articleView?id=data.c360_a_dg_n1_restriction.htm&release=264.0.0&type=5). Relate profile-extension data to Individual or Unified Individual by their primary key ([SKILL.md](../SKILL.md) "Real-time graph joins"; account options in [decisioning.md](decisioning.md) §1.3).
 - **Calculated insights** join a graph only when built on a DMO in the graph, with its primary key as a dimension, at the root [src](https://help.salesforce.com/s/articleView?id=data.c360_a_add_calculated_insights_to_a_data_graph.htm&release=264.0.0&type=5).
 - **Refresh:** standard graphs offer Every 30 Minutes, 1 Hour, 4 Hours, Daily (default), Weekly, Monthly or Streaming (no N:1, no ad hoc filters); real-time graphs update continuously; builds take 15 minutes to several hours [src](https://help.salesforce.com/s/articleView?id=data.c360_a_create_a_data_graph.htm&release=264.0.0&type=5). The lakehouse copy of a real-time graph refreshes hourly; the limits page's standard list omits the 1-hour option [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5). SP's quick start prescribes a 30-minute interval [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_qs_create_required_data_graphs.htm&release=264.0.0&type=5).
 - **Editing:** fields and objects can be removed only in draft; otherwise only added [src](https://help.salesforce.com/s/articleView?id=data.c360_a_edit_a_data_graph.htm&release=264.0.0&type=5). **Preview** shows the JSON structure [src](https://help.salesforce.com/s/articleView?id=data.c360_a_view_data_graph_metadata.htm&release=264.0.0&type=5).
@@ -228,8 +229,8 @@ Run in Query Editor in the right data space [src](https://help.salesforce.com/s/
 | Stage | Check | Pass means |
 |---|---|---|
 | 1. Stream landed | Stream refresh history, then QA1 | Rows added in the test window; DLO count moves |
-| 2. Mapping correct | QA2, QA3 | DMO count close to DLO count; no nulls in PK / Party / Number / Name |
-| 3. Identity rows present | QA3, QA4 (this file), Q10a in [sql-cookbook.md](sql-cookbook.md) | Name/Type pairs equal the rule's values on both sides; every row has an Individual |
+| 2. Mapping correct | QA1, QA2, QA2b, QA3 | DMO row count (QA2b) close to DLO count (QA1); no nulls in PK / Party / Number / Name (QA3) |
+| 3. Identity rows present | QA3, QA4 (this file), Q10a in [sql-cookbook.md](sql-cookbook.md) | Q10a Name/Type pairs equal the rule's values on both sides; QA4 `rows_without_individual` is 0 |
 | 4. Unification happened | QA5, QA6, acceptance test in [field-guide-data.md](field-guide-data.md) §4 | Unified count moved; web and non-web sources share unified IDs; decoys stay separate |
 | 5. Reconciliation outcome | QA7 | Root values for a known test profile follow the configured rule |
 | 6. Graph record | Data Explorer, Query API lookup | The test profile's graph JSON holds the fields targeting needs |
@@ -254,6 +255,13 @@ ORDER BY 3 DESC
 ```
 - Field names from the Individual DMO reference [src](https://developer.salesforce.com/docs/data/data-cloud-dmo-mapping/guide/c360dm-individual-dmo.html). `no_last_modified` equal to the row count means `Last Updated` reconciliation can't use that source.
 
+**QA2b. Individual row count** — `doc-derived (untested)`
+```sql
+SELECT COUNT(*) AS dmo_rows
+FROM ssot__Individual__dlm
+```
+- Compare with QA1 for the Individual DLO; a gap points at unmapped rows or a filter.
+
 **QA3. Party Identification key-field nulls per source** — `doc-derived (untested)`
 ```sql
 SELECT pi.ssot__DataSourceId__c AS data_source,
@@ -265,7 +273,7 @@ SELECT pi.ssot__DataSourceId__c AS data_source,
 FROM ssot__PartyIdentification__dlm pi
 GROUP BY 1
 ```
-- Field names from the identity modeling page [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_data_modeling_individual.htm&release=264.0.0&type=5). Name/Type pairs per source: [field-guide-data.md](field-guide-data.md) §4 (field-verified).
+- Field names from the identity modeling page [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_data_modeling_individual.htm&release=264.0.0&type=5). Name/Type pairs per source: [field-guide-data.md](field-guide-data.md) §4 (field-verified). If `ssot__IdentificationNumber__c` fails, try `ssot__Identificationnumber__c` ([sql-cookbook.md](sql-cookbook.md) "Names"); which spelling an org exposes is UNVERIFIED.
 
 **QA4. Orphan identity rows and identifier formats** — `doc-derived (untested)`
 ```sql
@@ -290,19 +298,19 @@ SELECT l.ssot__DataSourceId__c AS data_source,
        COUNT(l.SourceRecordId__c) AS source_records,
        COUNT(DISTINCT l.UnifiedRecordId__c) AS unified_profiles,
        100.0 * (1 - COUNT(DISTINCT l.UnifiedRecordId__c) * 1.0 / COUNT(l.SourceRecordId__c)) AS consolidation_pct
-FROM IndividualIdentityLink__dlm l
+FROM <LINK_DMO>__dlm l
 GROUP BY 1, 2
 ```
-- Query Editor form of the documented consolidation insight, which groups by data source and data source object and uses `APPROX_COUNT_DISTINCT` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_resolution_troubleshooting_ci_consolidation_rate.htm&release=264.0.0&type=5). Total unified profiles: `SELECT COUNT(*) FROM UnifiedIndividual__dlm`. Largest profiles: [sql-cookbook.md](sql-cookbook.md) Q10c.
+- Query Editor form of the documented consolidation insight, which groups by data source and data source object and uses `APPROX_COUNT_DISTINCT` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_resolution_troubleshooting_ci_consolidation_rate.htm&release=264.0.0&type=5). Total unified profiles: `SELECT COUNT(*) FROM <UNIFIED_DMO>__dlm`. Largest profiles: [sql-cookbook.md](sql-cookbook.md) Q10c.
 
 **QA6. Every source linked to one test profile** — `doc-derived (untested)`
 ```sql
 SELECT l.UnifiedRecordId__c AS unified_individual,
        l.ssot__DataSourceId__c AS data_source,
        l.SourceRecordId__c AS source_individual
-FROM IndividualIdentityLink__dlm l
+FROM <LINK_DMO>__dlm l
 WHERE l.UnifiedRecordId__c IN (
-  SELECT UnifiedRecordId__c FROM IndividualIdentityLink__dlm
+  SELECT UnifiedRecordId__c FROM <LINK_DMO>__dlm
   WHERE SourceRecordId__c = '<TEST_SOURCE_ID>')
 ORDER BY 2
 ```
@@ -316,20 +324,20 @@ SELECT l.ssot__DataSourceId__c AS data_source,
        i.ssot__LastModifiedDate__c AS source_last_modified,
        u.ssot__FirstName__c AS unified_first_name,
        u.ssot__IsAnonymous__c AS unified_is_anonymous
-FROM IndividualIdentityLink__dlm l
+FROM <LINK_DMO>__dlm l
 JOIN ssot__Individual__dlm i ON l.SourceRecordId__c = i.ssot__Id__c
-JOIN UnifiedIndividual__dlm u ON l.UnifiedRecordId__c = u.ssot__Id__c
+JOIN <UNIFIED_DMO>__dlm u ON l.UnifiedRecordId__c = u.ssot__Id__c
 WHERE l.UnifiedRecordId__c IN (
-  SELECT UnifiedRecordId__c FROM IndividualIdentityLink__dlm
+  SELECT UnifiedRecordId__c FROM <LINK_DMO>__dlm
   WHERE SourceRecordId__c = '<TEST_SOURCE_ID>')
 ```
-- Both joins follow the documented CI pattern (source Id → `SourceRecordId__c`, `UnifiedRecordId__c` → `UnifiedIndividual__dlm.ssot__Id__c`) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_aggregates.htm&release=264.0.0&type=5); unified field names mirroring `ssot__FirstName__c` / `ssot__IsAnonymous__c` are UNVERIFIED, so confirm them in the Data Model tab. If sources share Individual Id values, add key qualifiers to the Individual join (inference).
-- Expected: the unified value equals the value the configured rule selects (highest-priority non-null source, latest modified, or most frequent). Contact points aren't reconciled; list them from `ContactPointEmailIdentityLink__dlm` by `UnifiedRecordId__c`.
+- Both joins follow the documented CI pattern (source Id → `SourceRecordId__c`, `UnifiedRecordId__c` → the unified object's `ssot__Id__c`) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_aggregates.htm&release=264.0.0&type=5); unified field names mirroring `ssot__FirstName__c` / `ssot__IsAnonymous__c` are UNVERIFIED, so confirm them in the Data Model tab. If sources share Individual Id values, add key qualifiers to the Individual join (inference).
+- Expected: the unified value equals the value the configured rule selects (highest-priority non-null source, latest modified, or most frequent). Contact points aren't reconciled; list them from the contact point email link object (`ContactPointEmailIdentityLink__dlm` without a ruleset ID) by `UnifiedRecordId__c`.
 
 **Data graph record check**
 - Data Explorer → object type Data Graph → the graph → view the JSON; set **Real-time View: On** to read real-time instead of cached data [src](https://help.salesforce.com/s/articleView?id=data.c360_a_view_your_data.htm&release=264.0.0&type=5).
-- Query API lookup by source ID: `GET /api/v1/dataGraph/{name}?lookupKeys=[<LINK_DMO>__dlm.SourceRecordId__c=<TEST_SOURCE_ID>]`, adding `live=true` for the latest data instead of the precalculated record; real-time graphs accept only primary-key and key-qualifier lookups [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-lookup.html).
-- Without a Data 360 tenant token: the Data 360 Connect API on the org's own REST endpoint, `GET /services/data/v67.0/ssot/data-graphs/data/{name}?lookupKeys=[…]`, with `noCache=true` for the standard copy, and `/ssot/data-graphs/metadata?dataGraphEntityName={name}` for the definition [src](https://developer.salesforce.com/docs/data/connectapi/references/spec). Response shape and reading tips: [headless-decisions.md](headless-decisions.md) §8.
+- Query API lookup by source ID: `GET /api/v1/dataGraph/{name}?lookupKeys=[<LINK_DMO>__dlm.SourceRecordId__c=<TEST_SOURCE_ID>]`, adding `live=true` for the latest data instead of the precalculated record; real-time graphs accept only primary-key and key-qualifier lookups there (a Query API restriction; the Connect API lookup below was field-verified with a link-object key, [headless-decisions.md](headless-decisions.md) §8) [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-lookup.html).
+- Without a Data 360 tenant token: the Data 360 Connect API on the org's own REST endpoint, `GET /services/data/v<API_VERSION>/ssot/data-graphs/data/{name}?lookupKeys=[…]` (use your org's current API version; the resource is documented from v59.0), with `noCache=true` for the standard copy, and `/ssot/data-graphs/metadata?dataGraphEntityName={name}` for the definition [src](https://developer.salesforce.com/docs/data/connectapi/references/spec). Response shape and reading tips: [headless-decisions.md](headless-decisions.md) §8.
 - End-to-end: call the point with `TestMode` and `context.individualId` ([field-guide-data.md](field-guide-data.md) §3).
 
 ## Field-observed lessons
