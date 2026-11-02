@@ -4,6 +4,8 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-11-02
+
 Full audit of the repo: contradictions, code errors, dangling references and use-case hints fixed.
 
 ### Added
@@ -386,7 +388,8 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.11.1...HEAD
+[1.11.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.5...v1.11.0
 [1.10.5]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.4...v1.10.5
 [1.10.4]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.3...v1.10.4
