@@ -185,6 +185,24 @@ json.dump(clean(json.load(open(sys.argv[1]))), sys.stdout, ensure_ascii=False, i
      On the page itself, `SalesforceInteractions.Personalization.fetch(["Homepage_Hero"])` requests the point for the current browser's profile.
 6. **Go live.** Set `state` to `Live` in another `PUT`, or in the UI.
 
+### 6.1 Building decisions from scratch
+
+Don't write rule JSON from the business description. Ask for these first:
+
+1. **The decision matrix.** Each audience, the content it gets, the order in which audiences should win when a profile fits several, and what everyone else gets (a catch-all or nothing).
+2. **The point's shape.** The content schema attribute names and the profile data graph (API name, data space), or a raw `GET` of the point.
+3. **One seed decision.** Ask the user to build one decision in the wizard that uses every kind of condition the matrix needs (a direct attribute, a related-attribute `Count` with a `WHERE`, an exclusion, a calculated insight), save it as `Draft`, and read the point raw with `GET` and `X-Chatter-Entity-Encoding: false` (§2). The operators and `RelatedField` shapes beyond §4's list are undocumented, so the seed is the only reliable template. Never ask for tokens: the user runs the call in their own session (for example Workbench's REST Explorer) and pastes the result with identifiers masked.
+4. **Stored values.** The distinct values of every field the rules will test (`SELECT <FIELD>__c, COUNT(*) FROM <DMO>__dlm GROUP BY <FIELD>__c`), so each condition uses a value that exists, spelled as stored.
+
+Then:
+
+1. Draft the other decisions by copying the seed's shapes and changing values, one audience at a time. Where several conditions must hold on the same child row (for example two attributes of one card or one subscription), put them together in one condition on that child object, because separate nested `AtLeastOne` conditions can be met by different rows (§4).
+2. Build the full body per §5 and write it as `Draft` to a test point (§6), with every existing decision kept.
+3. Run the QA checklist (§7) on the `GET` of what was written, and show the user the findings before anything goes `Live`.
+4. Verify with the `TestMode` request in §6 for one profile that should match and one that shouldn't, then set `Live`.
+
+If the user has no API access, ask them to build the decisions in the wizard and paste each decision's conditions as text. Apply §7 to that text and say that it is a review of what was described, not of the stored JSON.
+
 ## 7. QA checklist for a point's decisions
 
 Run it on the raw `GET` output before go-live and after every edit:
@@ -196,6 +214,11 @@ Run it on the raw `GET` output before go-live and after every edit:
 - Every `relatedObjectsPath`, `objectPath` and `fieldName` exists in the point's profile data graph; only fields in the graph can be used for targeting [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5).
 - A mistyped condition value saves without an error and never matches (Field-observed). Diff values across sibling decisions, and check the stored values with `SELECT <FIELD>__c, COUNT(*) FROM <DMO>__dlm GROUP BY <FIELD>__c` before writing an `In` list. If the excluded values plus the required one cover every stored value, the exclusion is equivalent to "every row is the required value".
 - Decisions with similar names have the conditions their names imply.
+- **Reachability.** Compare each decision with the ones above it in priority. If every condition of a higher decision is also a condition of the lower one, anyone who fits the lower decision also fits the higher one, so the lower one never serves (inference from first-match evaluation, the first item above).
+- **Same-row conditions.** Conditions meant to describe one child row sit together in one condition on that child object, not as separate nested `AtLeastOne` conditions (§4). A single-row form is `Count` `Is Greater Than` `0` on the child path with every field test in `preAggregationRules`, the same shape as the exclusion in §4 (inference by analogy; build it in the wizard and `GET` it to confirm).
+- **Content matches targeting.** Values that encode an audience (tracking or campaign codes in a URL, names, image choices) agree with the decision's rules. Flag decisions that share a destination or image but target different audiences, and decisions whose code names a different audience than their rules.
+- **Coverage.** Every audience in the matrix appears in at least one decision. Size the profiles that match no decision with a count query over the same conditions, because they get `NO_DECISION_QUALIFIED` unless a catch-all exists.
+- **Flags against their source rows.** When a rule reads a summary flag (a yes/no indicator on a parent), count where the flag disagrees with the child rows it summarizes. A rule is only as accurate as the data it reads.
 
 ## 8. Read the profile a decision sees (data graph lookup)
 

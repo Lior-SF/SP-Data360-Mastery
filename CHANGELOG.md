@@ -4,6 +4,14 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-02
+
+### Added
+
+- `SKILL.md`: a "Building decisions from scratch" fact. Ask for the decision matrix, the point's schema and data graph, a seed decision read raw through the API and the stored values of the tested fields before drafting rules.
+- `references/headless-decisions.md` §6.1: the from-scratch workflow (intake, derive from a seed decision, write as `Draft` to a test point, QA, `TestMode`), including the fallback when the user has no API access.
+- `references/headless-decisions.md` §7: QA checks for reachability, same-row conditions, content matching targeting, coverage and flags against their source rows.
+
 ## [1.10.5] - 2026-10-18
 
 ### Added
