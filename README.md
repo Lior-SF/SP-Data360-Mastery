@@ -44,6 +44,7 @@ Ask in plain language. Mentioning "Salesforce Personalization", "Data 360", "WPM
 
 **Decisions, WPM and experiments**
 - "Personalize a homepage hero slot: one version for known customers, one for anonymous visitors. What goes in each decision, and in what priority order?"
+- "I'm starting a personalization point from scratch. Help me design its decisions, write them, and QA the result."
 - "WPM doesn't list my personalization point. What should I check?"
 - "How do I cap how often a visitor sees an overlay?"
 - "Set up an A/B test between two recommenders on one personalization point."
@@ -74,7 +75,7 @@ Ask in plain language. Mentioning "Salesforce Personalization", "Data 360", "WPM
 | [references/web-sdk-and-sitemap.md](references/web-sdk-and-sitemap.md) | Salesforce Interactions SDK, sitemap, consent, identity, Personalization module, flicker defense, Decisioning API |
 | [references/sitemap-templates.md](references/sitemap-templates.md) | Copy-ready multi-page / server-rendered starter sitemap, CMP-agnostic consent adapter, optional SPA add-on, catalog/cart/order event formats |
 | [references/decisioning.md](references/decisioning.md) | Profile and item data graphs, personalization points, content schemas, decisions, targeting rules, recommenders |
-| [references/headless-decisions.md](references/headless-decisions.md) | Reading, QA'ing and writing a personalization point's decisions as JSON through the Connect API: endpoints, input schema, rule tree, GET-to-PUT conversion, safe workflow, data graph record lookup |
+| [references/headless-decisions.md](references/headless-decisions.md) | Reading, QA'ing and writing a personalization point's decisions as JSON through the Connect API: endpoints, input schema, rule tree, GET-to-PUT conversion, safe workflow, building decisions from scratch, decision QA checklist, data graph record lookup |
 | [references/calculated-insights.md](references/calculated-insights.md) | Calculated, streaming and real-time insights: types, SQL rules, adding insights to data graphs, targeting and recommender use, freshness, limits, cost, troubleshooting |
 | [references/wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md) | Web Personalization Manager, experience templates, personalization campaigns, experimentation |
 | [references/measurement-and-attribution.md](references/measurement-and-attribution.md) | Engagement signals and metrics, attribution, Pipeline and Attribution Intelligence, reporting |

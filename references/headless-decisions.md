@@ -207,6 +207,8 @@ If the user has no API access, ask them to build the decisions in the wizard and
 
 Run it on the raw `GET` output before go-live and after every edit:
 
+The first items come from documented behavior and field results. **Reachability** onward is review practice derived from those rules, not a documented requirement.
+
 - At most one decision has `targetingRules: null`, and it has the lowest priority. A decision below a catch-all never serves, because decisions are evaluated in priority order [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_decision_add.htm&release=264.0.0&type=5) (inference).
 - Every decision meant to serve is `Live`.
 - No value has leading or trailing whitespace, and no `Live` decision holds a placeholder (`Test`, sample URLs) or a diagnostic merge field ([field-guide-data.md](field-guide-data.md) §3).
@@ -214,7 +216,7 @@ Run it on the raw `GET` output before go-live and after every edit:
 - Every `relatedObjectsPath`, `objectPath` and `fieldName` exists in the point's profile data graph; only fields in the graph can be used for targeting [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_considerations.htm&release=264.0.0&type=5).
 - A mistyped condition value saves without an error and never matches (Field-observed). Diff values across sibling decisions, and check the stored values with `SELECT <FIELD>__c, COUNT(*) FROM <DMO>__dlm GROUP BY <FIELD>__c` before writing an `In` list. If the excluded values plus the required one cover every stored value, the exclusion is equivalent to "every row is the required value".
 - Decisions with similar names have the conditions their names imply.
-- **Reachability.** Compare each decision with the ones above it in priority. If every condition of a higher decision is also a condition of the lower one, anyone who fits the lower decision also fits the higher one, so the lower one never serves (inference from first-match evaluation, the first item above).
+- **Reachability.** Compare each decision with the ones above it in priority. If every condition of a higher decision is also a condition of the lower one, anyone who fits the lower decision also fits the higher one, so the lower one never serves (inference from first-match evaluation; see the catch-all item at the top of this list).
 - **Same-row conditions.** Conditions meant to describe one child row sit together in one condition on that child object, not as separate nested `AtLeastOne` conditions (§4). A single-row form is `Count` `Is Greater Than` `0` on the child path with every field test in `preAggregationRules`, the same shape as the exclusion in §4 (inference by analogy; build it in the wizard and `GET` it to confirm).
 - **Content matches targeting.** Values that encode an audience (tracking or campaign codes in a URL, names, image choices) agree with the decision's rules. Flag decisions that share a destination or image but target different audiences, and decisions whose code names a different audience than their rules.
 - **Coverage.** Every audience in the matrix appears in at least one decision. Size the profiles that match no decision with a count query over the same conditions, because they get `NO_DECISION_QUALIFIED` unless a catch-all exists.
