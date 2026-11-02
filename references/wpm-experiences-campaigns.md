@@ -106,8 +106,16 @@ const config = {   // composite of the doc's global and pageTypes examples
 SalesforceInteractions.Personalization.Config.ContentZoneHandler.set("<HANDLER_NAME>", {
   label: "<Label shown in WPM>",       // defaults to the handler name
   path: "<TARGET_SELECTOR>",           // design-time highlight selector; never combine with onHighlight
-  onReady: (content, metadata) => { document.querySelector("<TARGET_SELECTOR>").innerHTML = content; },
-  onRevert: (metadata) => { document.querySelector("<TARGET_SELECTOR>").innerHTML = ""; },
+  onReady: (content, metadata) => {
+    const el = document.querySelector("<TARGET_SELECTOR>");
+    if (!el || !content) return;                 // no target or no content: leave the original markup
+    if (el.dataset.spOriginal === undefined) el.dataset.spOriginal = el.innerHTML;   // keep the original once
+    el.innerHTML = content;                      // demo only: content is untrusted HTML; in a framework render it through the framework instead
+  },
+  onRevert: (metadata) => {
+    const el = document.querySelector("<TARGET_SELECTOR>");
+    if (el && el.dataset.spOriginal !== undefined) el.innerHTML = el.dataset.spOriginal;   // restore the original content
+  },
 });
 ```
 - Why: SDK DOM manipulation "can conflict with the virtual DOM or rendering strategies of modern frameworks, causing personalized content to disappear" [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-personalization-modern-frontend-frameworks.html).
@@ -167,7 +175,7 @@ SalesforceInteractions.Personalization.Config.ContentZoneHandler.set("<HANDLER_N
 ## 5. `Select and Modify Existing Elements` (no template)
 - Flow: `Select and Modify Existing Elements` → `Location` page option → `Page Element Selection` → `Select Element` (optionally `Select Parent`) → `Add Element` for more → `Content` tab → `Engagement Destination` → choose the content attribute per element → `Preview Settings` → `Save` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_manually_personalize_page_elements.htm&release=264.0.0&type=5).
 - The "visual editor interface" can select multiple elements and modify their attributes; a docs image lists replaceable element attributes [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_manually_personalize_page_elements.htm&release=264.0.0&type=5).
-- "Ideal for quick, lightweight personalization use cases—such as updating banner copy, call-to-action text, or destination URLs" [src](https://partnerworkshops.salesforce.com/workshops/salesforce-personalization/personalization-experiences.html) (workshop source). Templates give "greater stability, especially on complex pages" and support recommendations [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5). Use manual mode for text, URL, and image swaps; use templates for layouts and recommendation lists.
+- "Ideal for quick, lightweight personalization use cases—such as updating banner copy, call-to-action text, or destination URLs" [src](https://partnerworkshops.salesforce.com/workshops/salesforce-personalization/personalization-experiences.html) (workshop source). Templates give "greater stability, especially on complex pages" and support recommendations [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5). Use manual mode for text, URL, and image swaps; use templates for layouts and recommendation lists (inference).
 
 ## 6. Preview, publish, storage, multiple experiences
 
@@ -191,7 +199,7 @@ SalesforceInteractions.Personalization.Config.ContentZoneHandler.set("<HANDLER_N
 - **Risk:** experiences built for a proof of concept or UAT stay live after the project moves on. An `Enabled` experience on a shared page type keeps rendering for real visitors, and keeps generating decisions and impressions that skew reports (Field-observed, undocumented). Changes publish only when `State` is `Enabled` and you `Save` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_export_and_publish.htm&release=264.0.0&type=5).
 - **Name test assets so they can be found.** Prefix experiences, experience templates, points, decisions and engagement signals built for tests, for example `TEST_` or `POC_` (Field-observed practice).
 - **Sweep before go-live and after each release.**
-  - On every page type, open WPM, turn on `Show All Personalization Experiences`, which previews all experiences created on the page [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5), and set leftovers to `State` `Disabled` and `Save`, or delete them.
+  - On every page type, open WPM, turn on `Show All Personalization Experiences`, which previews all experiences created on the page [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_wpm_use_predefined_templates.htm&release=264.0.0&type=5), and switch leftovers off with the `State` toggle (the docs say WPM lets you "enable or disable configurations"; the off label is UNVERIFIED) and `Save`, or delete them.
   - Return test decisions to `Draft`, since only `Live` decisions are evaluated [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_decision_add.htm&release=264.0.0&type=5).
   - Remove targeting rules that exist only for test users, and end test experiments.
 - **Confirm in the data.** Group recent Personalization Log rows by personalization point for each page type (Q2 in [sql-cookbook.md](sql-cookbook.md)); a point nobody expects to serve there is a leftover.
@@ -251,7 +259,7 @@ SalesforceInteractions.Personalization.Config.ContentZoneHandler.set("<HANDLER_N
   - Experiments inherit the point's profile data graph (filters available metrics) and content schema (docs may still say response template; it decides whether you test recommendations, content, or an agent).
   - Cohort assignment is sticky for the experiment's duration; an individual may be in several experiments at once.
   - Each cohort needs at least **1,000** participants; the first cohort is always the control.
-  - Cohort sizes may differ but must total 100%; unallocated share goes to the control.
+  - Cohort sizes may differ but must total 100%; the page also says an unallocated share goes to the control (the two statements conflict; `AllocationWeight__c` must total 100).
 - Experiment Cohort DMO: `AllocationWeight__c` must total 100; `IsControl__c` allows one control cohort [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/experiment-cohort-dmo.html).
 - Lifecycle, from the point's Related tab [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_exp_manage.htm&release=264.0.0&type=5):
 
@@ -323,6 +331,7 @@ Authorization: Bearer <Data 360 access token>
   - Experiment `Start` row ("can't be edited") vs `Edit` row (only functional settings locked) on the same Manage page.
   - Experiment Connect API marked "Available in: v65.0", which the Marketing Cloud Next Handlebars reference ties to Winter '26 [src](https://developer.salesforce.com/docs/marketing/handlebars-for-marketing-cloud-next/references/mcn-handlebars-personalization-references/mcn-handlebars-reference-personalization-personalizationresult.html), while the release note lists it under February '26 (Spring '26 notes).
   - `cohortId` (parameter table) vs `cohordId` (body example); the `Related Attributes` description on the Create an Experiment page duplicates `Direct Attributes`.
+  - Season labels: the note for the Experiment Connect API is called "February '26" and "Spring '26" while cited as release 260 (internal inconsistency; season mapping UNVERIFIED).
   - Workshop is partly stale ("Feature Coming Soon", mobile templates "upcoming").
 - Label drift: `Embedded Content` vs `Configure Embedded Content`; `Use Content Zone Handler` vs `Content Zone Handler`; `Page URL` vs `URL Address`, `Current Page Type` vs `Page Type`; `Select and Modify Existing Elements` vs `Select & Modify Existing Page Elements`; `New` vs `Add New`; `Agent Script` vs `AgentScript`; "response template" vs "content schema"; "Manual Content" (segment example) vs "Dynamic Content".
 - UNVERIFIED: `subVar`, `substitutionDefinitions`, `additionalTransformers`; template JavaScript, sanitization, escaping; Shadow DOM rendering; transformer and experience-config storage mapping; WPM filtering templates by schema; one active experiment per point; precedence of overlapping experiences; Web Curation Agent = Adaptive Websites; whether web experiences list on the point record; campaign experience creation timing; the "element must be present" rule; web preview default individual.

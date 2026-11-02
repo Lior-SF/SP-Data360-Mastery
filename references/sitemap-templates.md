@@ -22,141 +22,189 @@
 
 ## 2. Starter sitemap — multi-page / server-rendered site (primary)
 
-Documented APIs only; comments marked (inference) are design choices. Replace every `<PLACEHOLDER>`. No polling and no `reinit()`. Remove page types and events the site doesn't have.
+Documented APIs only; comments marked (inference) are design choices. Replace every `<PLACEHOLDER>`. No polling and no `reinit()`. Remove page types and events the site doesn't have. The code is wrapped in an IIFE so a second injection can't throw; the CMP is subscribed before `init` so the first decision can settle the `consents` Promise, and `updateConsents()` is applied right after `init` resolves because calling it before `init` is undocumented (UNVERIFIED).
 
 ```js
-/* Re-injection (Sitemap Builder Inject, console paste) re-runs this file: wrap it in an IIFE or use
-   top-level var instead of const/let, or the second run throws (field-guide-web.md §3.4). */
-/* ===== 1) Personalization module FIRST (must precede init) ===== */
-SalesforceInteractions.Personalization.Config.initialize({   // guard with if (SalesforceInteractions.Personalization) if a build may lack the module
-  customFlickerDefenseConfig: { redisplayTimeoutMilliseconds: 2000, renderPersonalizationAfterTimeoutElapsed: false }, // documented defaults
-});
-
-const SI = SalesforceInteractions;
-
-/* ===== 2) Consent adapter (see §3). CMP calls are PLACEHOLDERS for your vendor's documented API ===== */
-const CMP = {
-  provider: "<CMP_NAME>",                 // recorded as consent.provider
-  read: () => null,                       // PLACEHOLDER: return true | false | null (no decision yet) for the ONE approved category/purpose
-  subscribe: (callback) => {},            // PLACEHOLDER: call callback(true | false) on the first decision and on every later change
-};
-const CONSENT_WAIT_MS = 5000;             // <CONSENT_WAIT_MS>: ceiling so the consents Promise always settles (inference); size it well above measured cold-load CMP arrival
-const toConsent = (granted) => ({
-  provider: CMP.provider,
-  purpose: SI.ConsentPurpose.Tracking,
-  status: granted ? SI.ConsentStatus.OptIn : SI.ConsentStatus.OptOut,
-});
-let settled = false, resolveConsents;
-const initialConsents = new Promise((resolve) => { resolveConsents = resolve; });
-const settleOnce = (value) => { if (!settled) { settled = true; resolveConsents(value); } };
-const stored = CMP.read();
-if (stored !== null) settleOnce([toConsent(stored)]);
-setTimeout(() => settleOnce([]), CONSENT_WAIT_MS);    // [] = no tracking until updateConsents()
-CMP.subscribe((granted) => {
-  SI.updateConsents(toConsent(granted));          // every time, first: the Promise applies a microtask later (field-guide-web §1.2)
-  if (!settled) settleOnce([toConsent(granted)]);
-});
-const isOptedIn = () => SI.getConsents().some(({ consent }) =>
-  consent.purpose === SI.ConsentPurpose.Tracking && consent.status === SI.ConsentStatus.OptIn);
-
-/* ===== 3) Page matchers: mutually exclusive, return a BOOLEAN (never a Promise) ===== */
-const path = () => window.location.pathname;
-const is = {
-  orderConfirmation: () => /<ORDER_CONFIRMATION_PATH_REGEX>/.test(path()),
-  checkout:          () => /<CHECKOUT_PATH_REGEX>/.test(path()),
-  cart:              () => /<CART_PATH_REGEX>/.test(path()),
-  itemDetail:        () => /<ITEM_DETAIL_PATH_REGEX>/.test(path()),
-  category:          () => /<CATEGORY_PATH_REGEX>/.test(path()),
-  home:              () => path() === "/",
-};
-const onDomReady = (fn) => (document.readyState === "loading"
-  ? document.addEventListener("DOMContentLoaded", fn, { once: true }) : fn());   // the tag runs in <head> (inference)
-
-/* ===== 4) Site data readers: prefer a server-rendered data layer or JSON-LD over DOM scraping ===== */
-const readItemId = () => /* id of the item on this detail page */ null;
-const readCartLines = () => /* [{ catalogObjectType: "<ITEM_TYPE>", catalogObjectId, quantity, price, currency }] */ [];
-const readAddedLine = () => /* the line just added: { catalogObjectType, catalogObjectId, quantity, price?, currency? } */ null;
-const readOrder = () => /* { id, totalValue, currency: "<CURRENCY>", lineItems: [...] } on the confirmation page, else null */ null;
-const readKnownUserId = () => /* signed-in ID (newest data-layer entry carrying it), trimmed, else null; never "NA", "null", "0" */ null;
-
-/* ===== 5) Page-load commerce and identity events: separate calls, after the page interaction (inference) ===== */
-const sendPageLoadEvents = () => {
-  if (!isOptedIn()) return;                                   // nothing is transmitted before Opt In
-  if (is.cart()) {                                            // cart snapshot; [] = empty cart
-    SI.sendEvent({ interaction: { name: SI.CartInteractionName.ReplaceCart, lineItems: readCartLines() } });
+/* Wrapped in an IIFE so a second injection (Sitemap Builder Inject, console paste) doesn't throw on
+   re-declared const/let (field-guide-web.md §3.4). Re-injection also swaps its own document listeners. */
+(function () {
+  "use strict";
+  /* ===== 1) Personalization module FIRST (must precede init) ===== */
+  if (SalesforceInteractions.Personalization && SalesforceInteractions.Personalization.Config) {   // a build without the module keeps tracking
+    SalesforceInteractions.Personalization.Config.initialize({
+      customFlickerDefenseConfig: { redisplayTimeoutMilliseconds: 2000, renderPersonalizationAfterTimeoutElapsed: false }, // documented defaults
+    });
   }
-  const order = is.orderConfirmation() && readOrder();
-  if (order && sessionStorage.getItem("sp_order_sent") !== order.id) {       // no duplicate purchase on reload (inference)
-    SI.sendEvent({ interaction: { name: SI.OrderInteractionName.Purchase, order } });
-    sessionStorage.setItem("sp_order_sent", order.id);
-  }
-  const userId = readKnownUserId();
-  let anonId = "";
-  try { anonId = SI.getAnonymousId() || ""; } catch (e) { anonId = ""; }
-  const partyMemo = anonId + ":" + userId;                    // key to the anonymous ID (field-guide-web §2.4)
-  if (userId && anonId && sessionStorage.getItem("sp_party_sent") !== partyMemo) {
-    SI.sendEvent({ user: { attributes: {                      // separate event: never on the first action event
-      eventType: "partyIdentification",
-      IDNameWeb: "<ID_NAME>",                                  // SDK translation name; SP mapping DLO column may be IDName — match the uploaded schema
-      IDType: "<ID_TYPE>",
-      userId,
-    } } });
-    sessionStorage.setItem("sp_party_sent", partyMemo);       // write only after Opt In (guard above)
-  }
-};
 
-/* ===== 6) init + sitemap ===== */
-SI.init({
-  consents: initialConsents,                                  // required
-  cookieDomain: "<REGISTRABLE_DOMAIN>",                       // e.g. "example.com" to share identity across subdomains; omit for one host
-  personalization: { dataspace: "<DATA_SPACE>" },             // data space of your points ("default" if you have only one)
-}).then(() => {
-  const { listener, resolvers, CatalogObjectInteractionName, CartInteractionName } = SI;
-  // Run page-load events after the first event of this page is sent (the page interaction) (inference):
-  document.addEventListener(SI.CustomEvents.OnEventSend, () => onDomReady(sendPageLoadEvents), { once: true });
-  const clearPartyMemo = () => { try { sessionStorage.removeItem("sp_party_sent"); } catch (e) {} };
-  document.addEventListener(SI.CustomEvents.OnResetAnonymousId, clearPartyMemo);
-  document.addEventListener(SI.CustomEvents.OnSetAnonymousId, clearPartyMemo);
+  const SI = SalesforceInteractions;
+  const H = (window.__spSitemap = window.__spSitemap || {});     // handles from a previous injection
+  const swapListener = (type, key, fn) => {                      // remove the previous injection's listener, then add
+    if (H[key]) document.removeEventListener(type, H[key]);
+    H[key] = fn;
+    document.addEventListener(type, fn);
+  };
 
-  SI.initSitemap({
-    global: {
-      locale: "<LOCALE>",                                     // e.g. "en_US": from the data layer or <html lang>, normalized to ll_CC
-      listeners: [
-        listener("click", "<ADD_TO_CART_SELECTOR>", () => {   // or call sendEvent from the site's own add-to-cart code
-          const lineItem = readAddedLine();
-          if (lineItem) SI.sendEvent({ interaction: { name: CartInteractionName.AddToCart, lineItem } });
-        }),
-        listener("click", "<SIGN_OUT_SELECTOR>", () => SI.resetAnonymousId()),   // shared devices: new anonymous ID after sign-out
-      ],
-      onActionEvent: (event) => event,                        // must return the event
-    },
-    pageTypeDefault: { name: "default", interaction: { name: "Default Page View", eventType: "userEngagement" } },
-    pageTypes: [                                              // first match is selected: most specific first
-      { name: "order_confirmation", isMatch: is.orderConfirmation,
-        interaction: { name: "Order Confirmation View", eventType: "userEngagement" } },
-      { name: "checkout", isMatch: is.checkout,
-        interaction: { name: "Checkout View", eventType: "userEngagement" } },
-      { name: "cart", isMatch: is.cart,
-        interaction: { name: "Cart View", eventType: "userEngagement" } },
-      { name: "item_detail", isMatch: is.itemDetail,
-        interaction: { name: CatalogObjectInteractionName.ViewCatalogObject, catalogObject: {
-          type: "<ITEM_TYPE>",                                // e.g. Product, Article, Offer
-          id: resolvers.fromSelectorAttribute("<ITEM_ROOT_SELECTOR>", "<ITEM_ID_ATTR>"),   // or fromJsonLd(...), fromMeta(...), fromWindow("<DATA_LAYER_PATH>")
-        } },
-        contextualAttributes: {                               // anchor for "similar / bought together" recommenders
-          anchorId: readItemId,
-          anchorType: "<ITEM_DMO_API_NAME>",                  // DMO API name, e.g. ssot__GoodsProduct__dlm
-        } },
-      { name: "category", isMatch: is.category,
-        interaction: { name: CatalogObjectInteractionName.ViewCatalogObject, catalogObject: {
-          type: "Category",                                   // lands with item views; filter on type downstream (§5)
-          id: resolvers.fromSelectorAttribute("<CATEGORY_ROOT_SELECTOR>", "<CATEGORY_ID_ATTR>"),
-        } } },
-      { name: "home", isMatch: is.home,
-        interaction: { name: "Home View", eventType: "userEngagement" } },
-    ],
+  /* Session memos: sessionStorage can throw (private modes, policy); fall back to memory */
+  const mem = {};
+  const memo = {
+    get: (k) => { try { return sessionStorage.getItem(k); } catch (e) { return k in mem ? mem[k] : null; } },
+    set: (k, v) => { mem[k] = String(v); try { sessionStorage.setItem(k, String(v)); } catch (e) {} },
+    del: (k) => { delete mem[k]; try { sessionStorage.removeItem(k); } catch (e) {} },
+  };
+
+  /* ===== 2) Consent adapter (see §3). CMP calls are PLACEHOLDERS for your vendor's documented API ===== */
+  const CMP = {
+    provider: "<CMP_NAME>",                 // recorded as consent.provider
+    read: () => null,                       // PLACEHOLDER: return true | false | null (no decision yet) for the ONE approved category/purpose
+    subscribe: (callback) => {},            // PLACEHOLDER: call callback(true | false) on the first decision and on every later change
+  };
+  const CONSENT_WAIT_MS = 5000;             // <CONSENT_WAIT_MS>: ceiling so the consents Promise always settles (inference); size it well above measured cold-load CMP arrival
+  const toConsent = (granted) => ({
+    provider: CMP.provider,
+    purpose: SI.ConsentPurpose.Tracking,
+    status: granted ? SI.ConsentStatus.OptIn : SI.ConsentStatus.OptOut,
   });
-}).catch((err) => console.error("SP sitemap: initialization failed", err));   // a throw in .then() is otherwise silent
+  let settled = false, resolveConsents, sdkReady = false, latestConsent = null;
+  const initialConsents = new Promise((resolve) => { resolveConsents = resolve; });
+  const settleOnce = (value) => { if (!settled) { settled = true; resolveConsents(value); } };
+  let stored = null;
+  try { stored = CMP.read(); } catch (e) { stored = null; }     // a CMP failure means "no decision yet", never a throw
+  if (stored === true || stored === false) settleOnce([toConsent(stored)]);
+  setTimeout(() => settleOnce([]), CONSENT_WAIT_MS);            // [] = no tracking until updateConsents()
+  try {
+    CMP.subscribe((granted) => {
+      if (granted !== true && granted !== false) return;        // ignore empty notifications
+      latestConsent = toConsent(granted);
+      // updateConsents before init is undocumented (UNVERIFIED), so wait for init and apply the latest verdict then
+      if (sdkReady) SI.updateConsents(latestConsent);           // every time: the Promise applies a microtask later (field-guide-web §1.2)
+      settleOnce([latestConsent]);
+    });
+  } catch (e) { /* the ceiling timer still settles the Promise */ }
+  const isOptedIn = () => {
+    try {
+      return SI.getConsents().some(({ consent }) =>
+        consent.purpose === SI.ConsentPurpose.Tracking && consent.status === SI.ConsentStatus.OptIn);
+    } catch (e) { return false; }                               // fail closed
+  };
+
+  /* ===== 3) Page matchers: mutually exclusive, return a BOOLEAN (never a Promise) ===== */
+  const path = () => window.location.pathname;
+  const is = {
+    orderConfirmation: () => /<ORDER_CONFIRMATION_PATH_REGEX>/.test(path()),
+    checkout:          () => /<CHECKOUT_PATH_REGEX>/.test(path()),
+    cart:              () => /<CART_PATH_REGEX>/.test(path()),
+    itemDetail:        () => /<ITEM_DETAIL_PATH_REGEX>/.test(path()),
+    category:          () => /<CATEGORY_PATH_REGEX>/.test(path()),
+    home:              () => path() === "/",
+  };
+  const onDomReady = (fn) => (document.readyState === "loading"
+    ? document.addEventListener("DOMContentLoaded", fn, { once: true }) : fn());   // the tag runs in <head> (inference)
+
+  /* ===== 4) Site data readers: prefer a server-rendered data layer or JSON-LD over DOM scraping ===== */
+  const readItemId = () => /* id of the item on this detail page */ null;
+  const readCartLines = () => /* [{ catalogObjectType: "<ITEM_TYPE>", catalogObjectId, quantity, price, currency }]; return null when the cart data isn't available yet; [] only when the site confirms an empty cart */ null;
+  const readAddedLine = () => /* the line just added: { catalogObjectType, catalogObjectId, quantity, price?, currency? } */ null;
+  const readOrder = () => /* { id, totalValue, currency: "<CURRENCY>", lineItems: [...] } on the confirmation page, else null */ null;
+  const readKnownUserId = () => /* signed-in ID (newest data-layer entry carrying it), trimmed, else null; never "NA", "null", "0" */ null;
+
+  /* ===== 5) Page-load commerce and identity events: separate calls, after the page interaction (inference) ===== */
+  const sendPageLoadEvents = () => {
+    if (!isOptedIn()) return;                                 // nothing is transmitted before Opt In
+    if (is.cart()) {                                          // cart snapshot; [] = empty cart
+      const lines = readCartLines();
+      const cartKey = Array.isArray(lines) ? JSON.stringify(lines) : null;
+      if (cartKey !== null && memo.get("sp_cart_sent") !== cartKey) {   // skip an identical snapshot (inference)
+        SI.sendEvent({ interaction: { name: SI.CartInteractionName.ReplaceCart, lineItems: lines } });
+        memo.set("sp_cart_sent", cartKey);
+      }
+    }
+    const order = is.orderConfirmation() && readOrder();
+    if (order && memo.get("sp_order_sent") !== String(order.id)) {       // no duplicate purchase on reload (inference)
+      SI.sendEvent({ interaction: { name: SI.OrderInteractionName.Purchase, order } });
+      memo.set("sp_order_sent", order.id);
+    }
+    const userId = readKnownUserId();
+    let anonId = "";
+    try { anonId = SI.getAnonymousId() || ""; } catch (e) { anonId = ""; }
+    const partyMemo = anonId + ":" + userId;                  // key to the anonymous ID (field-guide-web §2.4)
+    if (userId && anonId && memo.get("sp_party_sent") !== partyMemo) {
+      SI.sendEvent({ user: { attributes: {                    // separate event: never on the first action event
+        eventType: "partyIdentification",
+        IDNameWeb: "<ID_NAME>",                               // SDK translation name; SP mapping DLO column may be IDName — match the uploaded schema
+        IDType: "<ID_TYPE>",
+        userId,
+      } } });
+      memo.set("sp_party_sent", partyMemo);                   // write only after Opt In (guard above)
+    }
+  };
+
+  /* One pending handler at a time: run the page-load events after the first event of this page is sent (inference) */
+  let pendingPageLoad = false;
+  const onFirstEventSent = () => {
+    pendingPageLoad = false;
+    document.removeEventListener(SI.CustomEvents.OnEventSend, onFirstEventSent);
+    onDomReady(sendPageLoadEvents);
+  };
+  const armPageLoadEvents = () => {
+    if (pendingPageLoad) return;
+    pendingPageLoad = true;
+    swapListener(SI.CustomEvents.OnEventSend, "onEventSend", onFirstEventSent);
+  };
+
+  /* ===== 6) init + sitemap ===== */
+  SI.init({
+    consents: initialConsents,                                // required
+    cookieDomain: "<REGISTRABLE_DOMAIN>",                     // e.g. "example.com" to share identity across subdomains; omit for one host
+    personalization: { dataspace: "<DATA_SPACE>" },           // data space of your points ("default" if you have only one)
+  }).then(() => {
+    const { listener, resolvers, CatalogObjectInteractionName, CartInteractionName } = SI;
+    sdkReady = true;
+    if (latestConsent) SI.updateConsents(latestConsent);      // a decision that arrived before init finished
+    armPageLoadEvents();
+    const clearPartyMemo = () => memo.del("sp_party_sent");
+    swapListener(SI.CustomEvents.OnResetAnonymousId, "onReset", clearPartyMemo);
+    swapListener(SI.CustomEvents.OnSetAnonymousId, "onSet", clearPartyMemo);
+
+    SI.initSitemap({
+      global: {
+        locale: "<LOCALE>",                                   // e.g. "en_US": from the data layer or <html lang>, normalized to ll_CC
+        listeners: [
+          listener("click", "<ADD_TO_CART_SELECTOR>", () => { // or call sendEvent from the site's own add-to-cart code
+            const lineItem = readAddedLine();
+            if (lineItem) SI.sendEvent({ interaction: { name: CartInteractionName.AddToCart, lineItem } });
+          }),
+          listener("click", "<SIGN_OUT_SELECTOR>", () => SI.resetAnonymousId()),   // shared devices: new anonymous ID after sign-out
+        ],
+        onActionEvent: (event) => event,                      // must return the event
+      },
+      pageTypeDefault: { name: "default", interaction: { name: "Default Page View", eventType: "userEngagement" } },
+      pageTypes: [                                            // first match is selected: most specific first
+        { name: "order_confirmation", isMatch: is.orderConfirmation,
+          interaction: { name: "Order Confirmation View", eventType: "userEngagement" } },
+        { name: "checkout", isMatch: is.checkout,
+          interaction: { name: "Checkout View", eventType: "userEngagement" } },
+        { name: "cart", isMatch: is.cart,
+          interaction: { name: "Cart View", eventType: "userEngagement" } },
+        { name: "item_detail", isMatch: is.itemDetail,
+          interaction: { name: CatalogObjectInteractionName.ViewCatalogObject, catalogObject: {
+            type: "<ITEM_TYPE>",                              // e.g. Product, Article, Offer
+            id: resolvers.fromSelectorAttribute("<ITEM_ROOT_SELECTOR>", "<ITEM_ID_ATTR>"),   // or fromJsonLd(...) (spelling: see §5 note), fromMeta(...), fromWindow("<DATA_LAYER_PATH>")
+          } },
+          contextualAttributes: {                             // anchor for "similar / bought together" recommenders
+            anchorId: readItemId,
+            anchorType: "<ITEM_DMO_API_NAME>",                // DMO API name, e.g. ssot__GoodsProduct__dlm
+          } },
+        { name: "category", isMatch: is.category,
+          interaction: { name: CatalogObjectInteractionName.ViewCatalogObject, catalogObject: {
+            type: "Category",                                 // lands with item views; filter on type downstream (§5)
+            id: resolvers.fromSelectorAttribute("<CATEGORY_ROOT_SELECTOR>", "<CATEGORY_ID_ATTR>"),
+          } } },
+        { name: "home", isMatch: is.home,
+          interaction: { name: "Home View", eventType: "userEngagement" } },
+      ],
+    });
+  }).catch((err) => console.error("SP sitemap: initialization failed", err));   // a throw in .then() is otherwise silent
+})();
 ```
 
 - API basis: module before `init` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/initialize-einstein-personalization-module.html); `init` → `initSitemap` in `.then()`, `consents` as `Consent[]` or `Promise<Consent[]>`, `[]` = no tracking until `updateConsents()`, `cookieDomain` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html); `personalization.dataspace` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/request-personalization-through-sitemap.html); sitemap keys, resolvers, `listener`, `onActionEvent` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-sitemap.html); `contextualAttributes` in `global` or `pageTypes`, value = string, function or Promise, `anchorType` = "The Data Model Object name associated with the anchor item" [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-dynamic-context-variables.html); `CustomEvents.OnEventSend` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html); `resetAnonymousId()` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
@@ -169,8 +217,8 @@ SI.init({
 - Identity hardening (Field-observed, undocumented): the sign-out listener is the simplest case. Sites also need intent-armed network logout signals and a reset that's a no-op when nothing is bound. Append-only data layers need newest-first reads and positional suppression after logout. The `sessionStorage` memos are deliberately session-scoped (one repair per session), but key them to `getAnonymousId()` and write them only after `Opt In`. Patterns: [field-guide-web.md](field-guide-web.md) §2.
 - In-page changes without navigation (quick view, variant switch, filters, tabs): send a catalog event such as `QuickViewCatalogObject` with `sendEvent` from a listener [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-catalog-interaction.html). Don't call `reinit()`.
 - Add to cart: the cart docs send `AddToCart` either from a sitemap listener or "from within your site's custom 'addToCart' function" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-cart-interaction.html). Sitemap and cart examples pass a callback argument `(event)`; the shape of that object isn't documented, so read the line from the site's data layer; outside the sitemap use `window.getSalesforceInteractions()`.
-- Timing: whether `initSitemap` waits for DOM ready before running resolvers is undocumented (UNVERIFIED). Prefer values available in `<head>` (a data layer on `window` set before the tag, `fromMeta`, `fromJsonLd`), or test on slow pages.
-- First page before a first-time consent decision: if the decision arrives after the page interaction, that page view isn't sent. The SDK doesn't store or transmit before `Opt In`, so those events are dropped, not queued [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html). `init()` resolving while the consents Promise is still pending is Field-observed, undocumented. On a multi-page site the next full load tracks normally. Replaying that one view is optional; see [troubleshooting.md](troubleshooting.md) (consent symptoms).
+- Timing: whether `initSitemap` waits for DOM ready before running resolvers is undocumented (UNVERIFIED). Prefer values available in `<head>` (a data layer on `window` set before the tag, `fromMeta`, `fromJsonLd`; the docs spell the JSON-LD resolver both `fromJsonLd` and `fromJsonLD`, so check which one your SDK exports (UNVERIFIED)), or test on slow pages.
+- First page before a first-time consent decision: if the decision arrives after the page interaction, that page view isn't sent. The SDK doesn't store or transmit before `Opt In`, so those events are dropped, not queued [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-consent.html). `init()` resolving while the consents Promise is still pending is Field-observed, undocumented. On a multi-page site the next full load tracks normally. The starter doesn't replay that one view; replaying it is optional (handler step in [field-guide-web.md](field-guide-web.md) §1.2); see [troubleshooting.md](troubleshooting.md) (consent symptoms).
 - `OnEventSend` "is dispatched after an event has been successfully processed, and a request is made" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html); using its first occurrence as the "page interaction sent" signal is inference. If consent arrives mid-page, the page-load events run after the next sent event; the `isOptedIn()` guard blocks them before opt-in.
 
 ## 3. Consent manager adapter (CMP-agnostic)
@@ -188,7 +236,7 @@ SI.init({
     - Implement `read()` from the CMP's live state, with its persisted cookie as fallback, so returning visitors settle at once.
     - Parse cookies anchored on the name, and match categories as exact tokens.
     - Treat empty or unparseable answers as `null`.
-    - Keep `subscribe()` attached (no `{ once: true }`), and call `updateConsents()` synchronously at the top of the change handler.
+    - Keep `subscribe()` attached (no `{ once: true }`), and call `updateConsents()` synchronously at the top of the change handler (in the starter, once `init` has resolved).
     - Probe whether the CMP reloads the page on save.
 
     Details: [field-guide-web.md](field-guide-web.md) §1.
@@ -196,18 +244,19 @@ SI.init({
 
 ## 4. Optional SPA add-on (client-side routing only)
 
-Add this **only** if routes change without a full page load (SPA, or an SSR framework with client-side navigation). Paste it inside `init().then(...)`, after `SI.initSitemap(...)`. A multi-page site never needs it.
+Add this **only** if routes change without a full page load (SPA, or an SSR framework with client-side navigation). Paste it inside the starter's `init().then(...)`, after `SI.initSitemap(...)`; it uses the starter's `SI`, `H`, `swapListener` and `armPageLoadEvents`. A multi-page site never needs it.
 
 ```js
-  /* ===== OPTIONAL SPA ADD-ON: only for client-side routing ===== */
-  // Documented baseline: poll the URL and reinit on change (SP example 500 ms; SDK example 200 ms).
-  let currentUrl = window.location.href;
-  setInterval(() => {
-    if (currentUrl !== window.location.href) { currentUrl = window.location.href; SI.reinit(); }
-  }, 500);
-  // Page-load events run once per full load; re-arm them for each virtual page (inference):
-  document.addEventListener(SI.CustomEvents.OnInit, () =>
-    document.addEventListener(SI.CustomEvents.OnEventSend, () => onDomReady(sendPageLoadEvents), { once: true }));
+    /* ===== OPTIONAL SPA ADD-ON: only for client-side routing ===== */
+    // Documented baseline: poll the URL and reinit on change (SP example 500 ms; SDK example 200 ms).
+    let currentUrl = window.location.href;
+    clearInterval(H.poll);                                    // re-injection: stop the previous poll first
+    H.poll = setInterval(() => {
+      if (currentUrl !== window.location.href) { currentUrl = window.location.href; SI.reinit(); }
+    }, 500);
+    // Page-load events run once per full load; re-arm them for each virtual page (inference).
+    // armPageLoadEvents ignores a call while one is already pending, so listeners can't stack.
+    swapListener(SI.CustomEvents.OnInit, "onInit", armPageLoadEvents);
 ```
 
 - Basis: polling and `reinit()` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/example-sitemap.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html); `OnInit` is the documented hook for SPAs that "reinitialize without a page load event" [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html).
@@ -249,6 +298,7 @@ Sources: [src](https://developer.salesforce.com/docs/data/salesforce-interaction
 - Tag loading: `async`/`defer`, tag-manager deployment and CSP host lists are undocumented for SP (see [web-sdk-and-sitemap.md](web-sdk-and-sitemap.md) §1).
 - Whether `initSitemap` waits for DOM ready before resolving selectors; whether the page interaction is always the first `OnEventSend` of a page or virtual page; whether `init()` resolves before a pending `consents` Promise (observed: yes).
 - `sitemap` listener handler arguments; handler registration timing relative to the decision response for late-mounting components.
+- Calling `updateConsents()` before `init` resolves; which spelling of the JSON-LD resolver the SDK exports (`fromJsonLd` / `fromJsonLD`).
 - Doc-vs-doc: `IDName` vs `IDNameWeb`; `isAnonymous` `0`/`1` vs `true`; order line `eventType` label; `Order Item` "Not mapped" (SP guide) vs mapped (starter mapping).
 - Targeting-rule operators remain unpublished ([decisioning.md](decisioning.md) §6.3).
 

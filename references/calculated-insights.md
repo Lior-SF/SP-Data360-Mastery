@@ -12,7 +12,7 @@
 | Processing | Scheduled runs over large history (SP calls it "near real time") | Continuous micro-batches, windows as short as 1 minute | Per event, results in milliseconds |
 | Source | Mapped DMOs and other insights (nesting, §2) | Engagement DMOs from streaming connectors (Web SDK, Mobile SDK, Marketing Cloud Personalization, Ingestion API, Kinesis, Kafka, CRM Streaming); joins only to Engagement and unified Individual objects | A real-time data graph |
 | Authoring | SQL or Visual Builder | SQL or Visual Builder | Visual Builder only |
-| Aggregates | See §2 | `SUM`, `COUNT` | `Sum`, `Count` on the 264 create page; `Min`, `Max` added by a 262 release note (next list) |
+| Aggregates | See [sql-cookbook.md](sql-cookbook.md) (aggregatable functions) | `SUM`, `COUNT` | `Sum`, `Count` on the 264 create page; `Min`, `Max` added by a 262 release note (next list) |
 | Segments and activation | Yes | No | Yes, as part of a real-time graph |
 | Typical SP use | Item rankings, lifetime or periodic profile metrics | Orchestration and data actions | In-session thresholds: cart value, recent clicks, frequency caps |
 
@@ -33,6 +33,7 @@
 - **Key on the unified profile.** For a Unified Individual–rooted graph, unified link objects are required [src](https://help.salesforce.com/s/articleView?id=data.c360_a_identity_resolution_terms.htm&release=264.0.0&type=5). Documented insights join `IndividualIdentityLink__dlm.UnifiedRecordId__c` to `UnifiedIndividual__dlm.ssot__Id__c` and the source record through `SourceRecordId__c` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_resolution_troubleshooting_ci_outlier_unified_profiles.htm&release=264.0.0&type=5). Constructed from that pattern (not executed). The cited example leaves the identity DMOs unprefixed while the default-data-space rule above prefixes standard DMOs, so confirm every API name on the Data Model tab (inference):
 
 ```sql
+/* doc-derived (untested). Object names assume a ruleset with no ID; see sql-cookbook.md for <LINK_DMO>. */
 SELECT
   UnifiedIndividual__dlm.ssot__Id__c AS unified_id__c,
   COUNT(<ENGAGEMENT_DMO>.ssot__Id__c) AS event_count__c
@@ -44,7 +45,7 @@ JOIN <ENGAGEMENT_DMO>
 GROUP BY unified_id__c
 ```
 
-- **Schedule:** every 1, 6, 12 or 24 hours, or `Not Scheduled` and run it manually (30 manual runs per CI per 24 hours, per the limits page below). If a run isn't finished when the next one is due, the next run is skipped; a 15-minute start time rounds up to the next 30 minutes; the user's time zone sets the schedule [src](https://help.salesforce.com/s/articleView?id=data.c360_a_schedule_a_calculated_insight_in_data_cloud.htm&release=264.0.0&type=5). A CI doesn't run when source data, mappings and configuration are unchanged, and it can be terminated after 2 hours [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
+- **Schedule:** every 1, 6, 12 or 24 hours, or `Not Scheduled` and run it manually (30 manual runs per CI per 24 hours, per the limits page below). If a run isn't finished when the next one is due, the next run is skipped; 15-minute start times round up to the next 30 minutes; the user's time zone sets the schedule [src](https://help.salesforce.com/s/articleView?id=data.c360_a_schedule_a_calculated_insight_in_data_cloud.htm&release=264.0.0&type=5). A CI doesn't run when source data, mappings and configuration are unchanged, and it can be terminated after 2 hours [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 - **Validate before use:** Data Explorer → Object `Calculated Insights` → the insight. Wait until the run finishes first [src](https://help.salesforce.com/s/articleView?id=data.c360_a_validate_an_insight_in_data_cloud.htm&release=264.0.0&type=5).
 - **Design the schema before the first run; editing is narrow.** For measures you can't change the API name, data type or rollup behavior, and can add only aggregatable measures to an aggregatable insight. For dimensions you can't change the name or data type, and can add one only if it's a key qualifier dimension. You can't remove measures or dimensions [src](https://help.salesforce.com/s/articleView?id=data.c360_a_edit_a_calculated_insight_in_customer_data_platform.htm&release=264.0.0&type=5). To change a shape, create a new insight. A graph that already includes the old one accepts additions only (§4), so plan the swap.
 
@@ -56,7 +57,7 @@ GROUP BY unified_id__c
 - **Evaluated at graph query time.** With no events in the window the metric is 0. Real-time graph clients must process the insight data client-side to get the true value at query time [src](https://help.salesforce.com/s/articleView?id=data.c360_a_insight_relative_time_metrics.htm&release=264.0.0&type=5). Whether SP applies the window exactly when it decides is undocumented (`UNVERIFIED`; test it, §8).
 - **Windows can be approximate.** To save storage, recent events sit in small buckets and older ones in larger buckets, so a count can be approximate rather than exact; `window_start__c` and `window_end__c` dimensions are created automatically [src](https://help.salesforce.com/s/articleView?id=data.c360_a_insight_relative_time_metrics.htm&release=264.0.0&type=5). Don't set a threshold that needs an exact count near the boundary (inference).
 - **Privacy lag:** real-time insights skip data subject rights checks per event. A companion batch CI applies them at the next real-time graph refresh, so an individual with a fresh request can still appear until then [src](https://help.salesforce.com/s/articleView?id=data.c360_a_insights_data_subject_rights.htm&release=264.0.0&type=5).
-- **Frequency-cap pattern:** [decisioning.md](decisioning.md) §8.1 and [implementation-playbook.md](implementation-playbook.md) §12.
+- **Frequency-cap pattern:** [decisioning.md](decisioning.md) §8.1 and [implementation-playbook.md](implementation-playbook.md), use-case pattern "12. Frequency capping" (not Setup sequence step 12).
 
 ## 4. Adding an insight to a data graph
 
@@ -74,12 +75,12 @@ GROUP BY unified_id__c
 |---|---|---|
 | Targeting rule | Resource `Calculated Insights`: CIs defined at the graph root | Create the insight and add it to the point's graph first; rules see everything reachable from that graph; up to 50 conditions per decision [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_personalization_point_targeting_rules_create.htm&release=264.0.0&type=5). Operator labels aren't published; confirm in the wizard ([decisioning.md](decisioning.md) §6.3) |
 | Merge field | CI on the profile graph, with sort criteria | Multi-value attributes need a sort criterion to pick which value returns (262) [src](https://help.salesforce.com/s/articleView?id=release-notes.rn_persnl_personalize_decisions_with_rltd_attrib_and_calc_insgt.htm&release=262.0.0&type=5) |
-| Rule-based recommender | CI on the **item** graph; choose the CI, `Sort Measure`, `Sort Order` | Top sellers and co-bought below; the `Maximize Revenue` objective needs the Product Sales (Top Sellers) insight configured first ([decisioning.md](decisioning.md) §2) |
+| Rule-based recommender | CI on the **item** graph, or on the **profile** graph for sorting (260+, [decisioning.md](decisioning.md) §7.3); choose the CI, `Sort Measure`, `Sort Order` | Top sellers and co-bought below; the `Maximize Revenue` objective needs the Product Sales (Top Sellers) insight configured first ([decisioning.md](decisioning.md) §2) |
 | Recommender filter | Item graph CI, or a `Profile Data Graph` CI | Filter details and limits: [decisioning.md](decisioning.md) §7.6 |
 | Predictive model input | Dimensionless numeric CI | [mobile-and-channels.md](mobile-and-channels.md) |
 | Segments | CI joins the Profile-type segmented table with its primary key as a dimension | [sql-cookbook.md](sql-cookbook.md) |
 
-- **Which graph:** point-level targeting reads the **profile** graph; recommenders sort on CIs in the **item** graph. SP's insight setup pages call the item graph "near real-time" [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_references_product_sales_standard_ci_ref.htm&release=264.0.0&type=5). "Using Data Graphs With Personalization" says the profile graph "must be a real-time data graph", but point-level articles support standard profile graphs, so treat that wording as stale ([decisioning.md](decisioning.md) §1.2) [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_data_graphs_using.htm&release=264.0.0&type=5).
+- **Which graph:** point-level targeting reads the **profile** graph; rule-based recommenders sort on CIs in the **item** graph or, since 260, the **profile** graph ([decisioning.md](decisioning.md) §7.3). SP's insight setup pages call the item graph "near real-time" [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_references_product_sales_standard_ci_ref.htm&release=264.0.0&type=5). "Using Data Graphs With Personalization" says the profile graph "must be a real-time data graph", but point-level articles support standard profile graphs, so treat that wording as stale ([decisioning.md](decisioning.md) §1.2) [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_data_graphs_using.htm&release=264.0.0&type=5).
 - **Multi-row CIs in rules:** which row a targeting condition evaluates when the CI has several rows per person isn't documented (`UNVERIFIED`). Prefer a CI keyed only on the person for eligibility rules, and use extra dimensions only where sort criteria choose the value (inference).
 - **Top Sellers (SP-provided, verbatim):** rows per product with the units sold. Add it to the item graph and sort by `TotalSoldUnits__c` [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_references_product_sales_standard_ci_ref.htm&release=264.0.0&type=5).
 
@@ -118,7 +119,7 @@ ON
 | Manual runs per CI per 24 hours | 30 |
 | Real-time insights / fields (incl. graph key) / related DMOs | 20 / 15 / 10 |
 
-- Real-time insight related DMOs must have a many-to-one relationship, directly, with an engagement DMO in the real-time graph; the 10 cap covers all active real-time insights across data spaces [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
+- Real-time insight related DMOs must have a many-to-one relationship, directly, with an engagement DMO in the real-time graph; the limits page's wording leaves open whether the 10 related-DMO cap is per insight or across all active real-time insights in all data spaces (UNVERIFIED) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 - Each real-time insight has a companion batch CI. Whether it counts against the 300 isn't stated (`UNVERIFIED`); check before planning near the cap.
 - **Cost:** a batch CI bills on the records in all underlying objects each run and nothing when the objects haven't changed. Real-time insights bill under the real-time pipeline or sub-second real-time events; streaming insights under streaming pipeline usage. To lower cost: run less often, set an end date, and turn off history tracking [src](https://help.salesforce.com/s/articleView?id=data.c360_a_billing_considerations_for_insights.htm&release=264.0.0&type=5).
 - **History tracking** creates a `…History` insight with `history_capture_ts`; use it for trend analysis; using it in targeting is untested [src](https://help.salesforce.com/s/articleView?id=data.c360_a_insight_apply_history_tracking.htm&release=264.0.0&type=5).

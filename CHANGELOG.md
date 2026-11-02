@@ -4,10 +4,45 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-11-02
+
+Full audit of the repo: contradictions, code errors, dangling references and use-case hints fixed.
+
+### Added
+
+- `scripts/validate_skill.py`:
+  - `--require-terms` fails when no private customer terms were loaded. CI sets it only when the `BANNED_TERMS` secret exists, so pull requests from forks run without the term check.
+  - The terms file can live outside the repository (`~/.config/sp-data360-mastery/customer-terms.txt`); `.customer-terms.txt` stays as a git-ignored fallback; `--terms-file` can be repeated.
+  - `#anchor` checks for links, and links with parentheses or titles.
+  - `§N` cross-references now also work inside backticks, in ranges (`§2.1–§2.3`) and as `web §` / `data §` shorthand. Lines marked "since renumbered" are skipped.
+  - The safety scan covers every text file (including `LICENSE`), tenant hosts such as `*.my.salesforce.com`, email addresses, and customer terms split by extra spaces or a line break.
+  - `README.md` and `CONTRIBUTING.md` are checked for unlabeled MCP citations.
+  - A `[src]` link to a non-Salesforce or workshop host must carry a `(workshop source)` or `(third-party)` label, and only `help.salesforce.com` and `developer.salesforce.com` links count toward the 10 required citations.
+- `CONTRIBUTING.md`: a table of every label in use, a "What is checked, and by whom" section, and where the private terms file lives.
+- `README.md`: how to see the installed version, and a note that `.git` must be removed before committing a clone.
+- References: corrected `references/sitemap-templates.md` starter (IIFE wrapper, guarded `Personalization.Config.initialize`, re-injection handles) and a QA query for the Individual row count in `references/data-360-foundations.md`.
+
 ### Changed
 
+- CI runs the validator with `--strict`.
+- Reference files may have at most 500 lines (the validator failed only above 600 before).
+- `README.md` Accuracy model: the baseline is release 264; the last full independent re-verification was v1.6.1 (September 2026), and later additions are cited or labeled. Added the `(Field-verified)`, `(workshop source)` and `(third-party)` labels and the secondary-source rule.
+- `CONTRIBUTING.md` and `.github/pull_request_template.md`: all labels, SQL tags, `--strict`, and the places that state the baseline release.
+- `CONTRIBUTING.md`: MCP-citation rule matches the validator (heading exemption documented).
+- References: decision write workflow in `references/headless-decisions.md` (a `Draft` can't test rules, `TestMode` is used on a test point, live decisions are never edited first); identity-link and unified object names in SQL use placeholders; DMO naming forms, diagnostics and permission conflicts are marked UNVERIFIED where the docs disagree; example wording made generic.
 - `README.md`: the `headless-decisions.md` row now lists building decisions from scratch and the QA checklist, and the example prompts include a from-scratch decision request.
 - `references/headless-decisions.md` §7: the reachability check names the catch-all item it relies on, and the checks from **Reachability** onward are labeled review practice rather than documented requirements.
+
+### Fixed
+
+- `SKILL.md`: `isMatch`, real-time freshness, sign-in linking, funnel counting, experiment settings, consent replay, `Personalization User` permissions and the Gears claim now match the references and carry labels where unverified. The description is shorter.
+- `references/sitemap-templates.md`: order and cart memos, no empty `ReplaceCart` when data isn't ready, guarded consent calls, safe `sessionStorage`, and no stacked page-load listeners in the SPA add-on.
+- `references/field-guide-web.md`: the consent-gate example uses `<CATEGORY_A>` / `<CATEGORY_B>`, states the AND behavior and the Shadow DOM caveat, and the wording is generic.
+- `references/sp-vs-mcp.md`, `references/web-sdk-and-sitemap.md`: claims that came only from the MCP migration page are labeled UNVERIFIED for SP (selector-less zones, `onConsentGrant`, Shadow DOM); cookie prefix test is `/^_{1,2}sfid_/`.
+- `references/wpm-experiences-campaigns.md`: the content zone handler example guards null and restores the original content on revert.
+- `references/sql-cookbook.md`, `references/measurement-and-attribution.md`: click-through rate uses `100.0 *`, the shared-identifier query is masked by default, a dead documentation link was removed, and IDs and consent values in examples are placeholders.
+- `references/decisioning.md`, `references/troubleshooting.md`, `references/implementation-playbook.md`, `references/calculated-insights.md`: `EnableDiagnostics` on authenticated calls is marked UNVERIFIED, plus smaller wording and cross-reference fixes.
+- `CHANGELOG.md` compare links: `[Unreleased]` now starts at `v1.11.0`, and `[1.11.0]` was added. Two historic `field-guide-data.md §3.1` mentions are marked "since renumbered".
 
 ## [1.11.0] - 2026-11-02
 
@@ -120,13 +155,13 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ### Changed
 
-- The decision JSON section added to `references/field-guide-data.md` §3.1 in 1.7.0 moved to the new guide; `field-guide-data.md` §3, `decisioning.md` §6.3 and §6.4, and `SKILL.md` point to it. Its "headless authoring (UNVERIFIED)" note is replaced by the field-verified `PUT` results.
+- The decision JSON section added to `references/field-guide-data.md` §3.1 (since renumbered) in 1.7.0 moved to the new guide; `field-guide-data.md` §3, `decisioning.md` §6.3 and §6.4, and `SKILL.md` point to it. Its "headless authoring (UNVERIFIED)" note is replaced by the field-verified `PUT` results.
 
 ## [1.7.0] - 2026-10-08
 
 ### Added
 
-- `references/field-guide-data.md` §3.1: reading a personalization point's decisions as JSON through the Connect REST API (`GET`/`PUT`/`DELETE /personalization/personalization-points/{idOrName}`, `POST` to create), raw output with `X-Chatter-Entity-Encoding: false`, and a QA checklist for the decisions. The decision shape, the rule tree (`Group`, `Field`, `RelatedField`), the stored operator names seen and the `{{{<MERGE_FIELD_NAME>}}}` token form are labeled field-observed. Headless authoring with `PUT` is labeled unverified.
+- `references/field-guide-data.md` §3.1 (since renumbered): reading a personalization point's decisions as JSON through the Connect REST API (`GET`/`PUT`/`DELETE /personalization/personalization-points/{idOrName}`, `POST` to create), raw output with `X-Chatter-Entity-Encoding: false`, and a QA checklist for the decisions. The decision shape, the rule tree (`Group`, `Field`, `RelatedField`), the stored operator names seen and the `{{{<MERGE_FIELD_NAME>}}}` token form are labeled field-observed. Headless authoring with `PUT` is labeled unverified.
 - Pointers from `references/decisioning.md` §6.3, §6.4 and the gaps list, and from `SKILL.md`.
 
 ## [1.6.1] - 2026-09-30
@@ -353,7 +388,9 @@ Generality and QA release. A blind QA ran 24 new-customer questions against v1.0
 - `scripts/validate_skill.py` and a CI workflow that check structure, links, citations and publication safety.
 - Issue templates, a pull request template and code owners.
 
-[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.5...HEAD
+[Unreleased]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.11.1...HEAD
+[1.11.1]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.11.0...v1.11.1
+[1.11.0]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.5...v1.11.0
 [1.10.5]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.4...v1.10.5
 [1.10.4]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.3...v1.10.4
 [1.10.3]: https://github.com/Lior-SF/SP-Data360-Mastery/compare/v1.10.2...v1.10.3
