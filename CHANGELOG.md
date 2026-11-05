@@ -21,6 +21,7 @@ Every change below was checked against the release 264 docs or the official web 
 - Removed `UNVERIFIED` where the docs answer it (real-time insight related-DMO cap is org-wide, time tracking is release 262, HTTP 429 throttling, Query Editor permission set label); added qualifiers for Exact Normalized in real time, the once-a-day ruleset limit and no-control-cohort experiments.
 - Corrected citations and SQL: default of 12 recommendations, `std__` vs `ssot__` foreign-key caveat, `event_day` alias, Q10b labelled as source records.
 - `SKILL.md`: `Personalization Intelligence Admin` and enhanced data space security prerequisites.
+- `headless-decisions.md`: the data graph child-record cap is the documented default of 100, adjustable to 1,000, and the sort field is chosen rather than fixed as the primary key. Real-time matching also notes that email and phone can use Exact Normalized.
 
 ## [1.11.1] - 2026-11-02
 
