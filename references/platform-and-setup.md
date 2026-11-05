@@ -287,7 +287,7 @@ SalesforceInteractions.init({
 | Recommenders per org (all data spaces) | 10 (1 objective-based with Personalization Card); increase via Support |
 | Full recommender data refresh | Daily |
 | Recommendation requests per minute per tenant | 60000 |
-| Recommendations returned | 24 maximum (default up to 12; raise with Maximum Number of Recommendations to Return) |
+| Recommendations returned | 24 maximum (default up to 12 per [Recommender Considerations](https://help.salesforce.com/s/articleView?id=mktg.persnl_recommender_considerations.htm&release=264.0.0&type=5); the UI label for raising it, "Maximum Number of Recommendations to Return", is UNVERIFIED in the 264 docs) |
 | Recommender objectives per org | 10 |
 | Include/exclude filter conditions | 10 |
 | Item DG CI values considered (dimensions + measures) | Top 100 |

@@ -138,8 +138,10 @@
 
 The response isn't accepted as-is. These conversions were needed (Field-verified):
 
+- **Check `source` and `sourceRecordId` first.** Don't PUT to a point whose `source` isn't `PersonalizationApp` (for example `PersonalizationCampaign`, `MarketingPersonalizationCampaign`, `FlowBuilder`, `Agentforce`): those are edited where they were created, and a campaign edit changes every channel mapped to it ([decisioning.md](decisioning.md) §5.1).
+- **Check for running experiments** (`experiments` on the decisions). A PUT can skew a running experiment, and a point in an A/B experiment randomises instead of following rules, so `TestMode` results won't reflect the rules.
 - **Remove `contextName`** from every rule. Input rejects it: `Unrecognized field "contextName"`.
-- **Remove read-only keys** that aren't in the input schema (§3): `id`, `url`, `status`, `criteria`, `createdById`, `createdDate`, `lastModifiedById`, `lastModifiedDate`.
+- **Remove read-only keys** that aren't in the input schema (§3): `id`, `url`, `status`, `criteria`, `experiments` (an array of `{name, state}` that a GET returns on each decision; not in the input schema, so a PUT that keeps it will probably be rejected), `createdById`, `createdDate`, `lastModifiedById`, `lastModifiedDate`.
 - **Drop `null` values.** The verified request carried none; whether `null` is rejected is (UNVERIFIED).
 - **Read with `X-Chatter-Entity-Encoding: false`**, or decode `&amp;` and other entities before writing (§2).
 
@@ -148,7 +150,7 @@ A minimal converter for a raw `GET` response saved as `point.json`:
 ```python
 import json, sys
 
-READ_ONLY = {"id", "url", "status", "criteria", "contextName", "createdById",
+READ_ONLY = {"id", "url", "status", "criteria", "contextName", "experiments", "createdById",
              "createdDate", "lastModifiedById", "lastModifiedDate"}
 
 def clean(node):

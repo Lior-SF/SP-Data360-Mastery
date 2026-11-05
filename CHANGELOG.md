@@ -4,6 +4,17 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Fixed
+
+- Starter sitemap and Web SDK reference now send `IDName` (defined as required in the official `/250/` and `/260/` web connector schemas) instead of `IDNameWeb`.
+- Implementation playbook: identity resolution and Use Case Setup now come after the data streams and DLO→DMO mappings they depend on; added the Basic Settings Unified Individual step.
+- `headless-decisions.md`: the GET-to-PUT converter strips the read-only `experiments` array; added guards for points not created in the Personalization app and for running experiments.
+- `troubleshooting.md`: warning that changing `cookieDomain` on a live site resets returning visitors' anonymous IDs; console probes should use `window.getSalesforceInteractions()`.
+- Sitemap template: sign-out also calls `clearPersistedIdentities()`, `anchorId` reuses the item ID resolver, and the stock schemas' lack of `userEngagement` is stated.
+- Removed `UNVERIFIED` where the docs answer it (real-time insight related-DMO cap is org-wide, time tracking is release 262, HTTP 429 throttling, Query Editor permission set label); added qualifiers for Exact Normalized in real time, the once-a-day ruleset limit and no-control-cohort experiments.
+- Corrected citations and SQL: default of 12 recommendations, `std__` vs `ssot__` foreign-key caveat, `DATE '…'`, `event_day` alias, Q10b labelled as source records.
+- `SKILL.md`: `Personalization Intelligence Admin` and enhanced data space security prerequisites.
+
 ## [1.11.1] - 2026-11-02
 
 Full audit of the repo: contradictions, code errors, dangling references and use-case hints fixed.
@@ -270,7 +281,7 @@ Repository review: the text added in 1.4.0 to 1.6.0 was fact-checked independent
   - Data graph cap is 25 standard plus 25 real-time everywhere.
   - `dataCloud.timeTracking` is a documented `init` option.
   - Website connector wait time cites both the 15-minute / 1-hour ingest page and the 2–3 minute (300 ms real-time) limits row, and records that they disagree.
-  - The copy-ready sitemap always calls `updateConsents()` first, keys the identity memo to `getAnonymousId()`, and sends `IDNameWeb`.
+  - The copy-ready sitemap always calls `updateConsents()` first, keys the identity memo to `getAnonymousId()`, and sends `IDNameWeb` (superseded: the template now sends `IDName`, which the official schemas define).
   - Recommendation default (12) vs maximum (24), diagnostic `511` vs `512`, calculated-insight measure scope, and Personalization Log `std__*` field API names.
   - Dynamic Content and content schema used as the current names.
 

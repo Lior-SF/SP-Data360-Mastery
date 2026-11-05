@@ -258,7 +258,7 @@ SalesforceInteractions.Personalization.Config.ContentZoneHandler.set("<HANDLER_N
 - Rules [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_exp_considerations.htm&release=264.0.0&type=5):
   - Experiments inherit the point's profile data graph (filters available metrics) and content schema (docs may still say response template; it decides whether you test recommendations, content, or an agent).
   - Cohort assignment is sticky for the experiment's duration; an individual may be in several experiments at once.
-  - Each cohort needs at least **1,000** participants; the first cohort is always the control.
+  - Each cohort needs at least **1,000** participants; the first cohort is the control, though the docs also allow no control cohort, deferring to the decisions already on the point [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_exp_considerations.htm&release=264.0.0&type=5).
   - Cohort sizes may differ but must total 100%; the page also says an unallocated share goes to the control (the two statements conflict; `AllocationWeight__c` must total 100).
 - Experiment Cohort DMO: `AllocationWeight__c` must total 100; `IsControl__c` allows one control cohort [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/experiment-cohort-dmo.html).
 - Lifecycle, from the point's Related tab [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_exp_manage.htm&release=264.0.0&type=5):

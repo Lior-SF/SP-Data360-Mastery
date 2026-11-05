@@ -2,7 +2,7 @@
 
 ## Scope
 - SQL for Salesforce Personalization (SP) reporting and debugging on Data 360: views and clicks per point, decision breakdowns, daily trends, unified-individual counts, calculated insights (CIs), SP's own attribution sample, decision latency, orphan engagement events, and identity checks.
-- Run ad-hoc SQL in Query Editor, which queries DLOs, DMOs, calculated insight objects (CIOs), and data graphs; you need data space access to each object, and creating queries needs the `Data Cloud Activation Specialist` permission set (UNVERIFIED: confirm the label in Setup) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor_create_queries.htm&release=264.0.0&type=5). Tableau and DBeaver are the other integrated apps [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/int-apps-data-cloud.html). Save recurring metrics as CIs, which need `Data Cloud Architect` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
+- Run ad-hoc SQL in Query Editor, which queries DLOs, DMOs, calculated insight objects (CIOs), and data graphs; you need data space access to each object, and creating queries needs the `Data Cloud Activation Specialist` permission set (label confirmed in the Query Editor help; you also select or create a workspace first) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_query_editor_create_queries.htm&release=264.0.0&type=5). Tableau and DBeaver are the other integrated apps [src](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/int-apps-data-cloud.html). Save recurring metrics as CIs, which need `Data Cloud Architect` [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
 - Status tags: `field-verified (Query Editor)` ran successfully in a live SP org; `doc-derived (untested)` uses only documented object, field, and function names but hasn't been run; `doc sample (verbatim)` is copied from SP Help.
 - Every query assumes the default data space (`ssot__` names) and the Website Engagement destination used by Dynamic Content (formerly Manual Content), except Q4b (Product Browse Engagement); see "Joins and values" to switch channels. Placeholders: `<POINT_ID>`, `<PAGE_TYPE>`, `<LINK_DMO>` (link object API name without `__dlm`; see Q5), `<RULESET_ID>`, `<START_DATE>`, `<END_DATE>`, `<CI_API_NAME>`. Q4b also uses `<PRODUCT_BROWSE_ENGAGEMENT_DMO>`, `<ACTION_FIELD>`, `<PERSONALIZATION_CONTENT_ID_FIELD>` and `<DATETIME_FIELD>`.
 
@@ -28,7 +28,7 @@
 - Rollups: aggregatable measures (`SUM`, `COUNT`, `AVG`, `MIN`, `MAX`) can be queried on any subset of dimensions. Non-aggregatable ones (`APPROX_COUNT_DISTINCT`, `CASE` wrapping an aggregate, `RANK`, `NTILE`) need all dimensions whenever they're queried [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_aggregates.htm&release=264.0.0&type=5) [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_general_sql_rules.htm&release=264.0.0&type=5); reports show them only after you add every dimension [src](https://help.salesforce.com/s/articleView?id=analytics.rd_dc_reports_calculated_insights_limits.htm&release=264.0.0&type=5).
 - An aggregatable insight accepts only aggregatable measures [src](https://help.salesforce.com/s/articleView?id=data.c360_a_edit_a_calculated_insight_in_customer_data_platform.htm&release=264.0.0&type=5), so keep counts and uniques in separate CIs (Q6a, Q6b). `SUM(CASE WHEN … THEN 1 ELSE 0 END)` is a `CASE` inside `SUM`, not an aggregate inside `CASE`, so whether it stays aggregatable is UNVERIFIED; Q6a uses `COUNT` only, and CASE-based CIs ([measurement-and-attribution.md](measurement-and-attribution.md) §8.6) should be reported with all dimensions until checked.
 - DMO names are case-sensitive; copy them from the Object API Name column on the Data Model tab [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
-- Limits: 10 dimensions, 50 measures, 300 CIs per tenant, 4 nested CIs, a 2-hour runtime, and 30 manual runs per 24 hours [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5); SQL up to 131,021 characters [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
+- Limits: 10 dimensions, 50 measures, 300 CIs per tenant, 4 nested CIs, a 2-hour runtime, and 30 manual runs per 24 hours per calculated insight [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5); SQL up to 131,021 characters [src](https://help.salesforce.com/s/articleView?id=data.c360_a_get_started_with_calculated_insights.htm&release=264.0.0&type=5).
 - Schedules: every 1, 6, 12, or 24 hours, or `Not Scheduled`. A run still in progress makes the next one skip, 15-minute start times round to the next 30 minutes, and the user's time zone applies [src](https://help.salesforce.com/s/articleView?id=data.c360_a_schedule_a_calculated_insight_in_data_cloud.htm&release=264.0.0&type=5). A CI doesn't run when source data, mappings, and configuration are unchanged [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 - After creation you can't change a measure's API name, data type, or rollup behavior, remove measures or dimensions, or add a dimension unless it's a key qualifier dimension [src](https://help.salesforce.com/s/articleView?id=data.c360_a_edit_a_calculated_insight_in_customer_data_platform.htm&release=264.0.0&type=5). Get the design right before you activate.
 - Streaming and real-time insights support only `SUM` and `COUNT` per the 264 SQL functions page [src](https://help.salesforce.com/s/articleView?id=data.c360_a_calculated_insights_aggregates.htm&release=264.0.0&type=5). A 262 release note adds `Min` and `Max` to the real-time Aggregate node (June 2026) [src](https://help.salesforce.com/s/articleView?id=release-notes.rn_cdp_2026_summer_realtime_insights_advanced_functions.htm&release=262.0.0&type=5); confirm in the builder.
@@ -116,7 +116,7 @@ ORDER BY views DESC
 ### Q4. Daily trend of views, clicks, and CTR — `doc-derived (untested)`
 Purpose: spot drops after a release, a sitemap change, or a consent change.
 ```sql
-SELECT date_trunc('day', w.ssot__EngagementDateTm__c) AS day,
+SELECT date_trunc('day', w.ssot__EngagementDateTm__c) AS event_day,
        SUM(CASE WHEN w.ssot__EngagementChannelActionId__c = 'personalization-view' THEN 1 ELSE 0 END) AS views,
        SUM(CASE WHEN w.ssot__EngagementChannelActionId__c = 'personalization-click' THEN 1 ELSE 0 END) AS clicks,
        100.0 * SUM(CASE WHEN w.ssot__EngagementChannelActionId__c = 'personalization-click' THEN 1 ELSE 0 END)
@@ -219,7 +219,7 @@ SUM (AttributedOrdersCount__c) as orders,
 SUM(AttributedOrdersCount__c) / NULLIF(SUM(AttributedViewsCount__c), 0)*100 as orderConversionRate,
 SUM (AttributedRevenue__c) as revenue
 FROM scm_PersonalizationPointViewAttribution__dlm
-WHERE  AttributionDate__c >= date('2024-01-01') AND AttributionDate__c <= date('2024-04-01')
+WHERE  AttributionDate__c >= DATE '2024-01-01' AND AttributionDate__c <= DATE '2024-04-01'   /* the doc sample writes date('...'); DATE '...' is the Data 360 SQL form */
 GROUP BY 1,2,3,4
 ORDER BY AttributionDate__c ASC;
 ```
@@ -296,7 +296,7 @@ FROM ssot__PartyIdentification__dlm pi
 GROUP BY 1, 2
 ORDER BY 3 DESC;
 
-/* Q10b (masked): how many identification numbers are shared by N individuals, by value length; placeholders such as NA or 0 show as short, widely shared values */
+/* Q10b (masked): how many identification numbers are shared by N source records, by value length. Web Party Identification is keyed per device, so one person with several browsers also counts several times; treat the output as 'source records sharing', not people; placeholders such as NA or 0 show as short, widely shared values */
 SELECT t.individuals_sharing,
        t.id_length,
        COUNT(*) AS identification_numbers

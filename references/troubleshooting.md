@@ -7,7 +7,7 @@
 - Placeholders: `<POINT_ID>`, `<POINT_API_NAME>`, `<PAGE_TYPE>`, `<TENANT_ENDPOINT>`, `<REGISTRABLE_DOMAIN>`, `<CMP_NAME>`, `<TARGET_SELECTOR>` (target element, for example `#<TARGET_ID>`), `<TEMPLATE_API_NAME>` (experience template), `<TARGET_ID>`, `<GRAPH>` (data graph API name), `<UNIFIED_ID>`, `<DEVICE_OR_CRM_ID>`. Examples use a single rendered slot; the same checks apply to overlays, recommendation strips and handler-rendered zones. `Q1`–`Q10` refer to `sql-cookbook.md`.
 
 ## Triage order
-Walk the pipeline in order and stop at the first failing stage. SDK logging is off by default (`none`, value 0), so start every session with this console snippet [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-debugging.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html):
+Walk the pipeline in order and stop at the first failing stage. Outside the sitemap, the SDK docs say to use `window.getSalesforceInteractions()` rather than the global `SalesforceInteractions` (advanced features can customize the global) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html); in the console probes below, read `SalesforceInteractions` as `window.getSalesforceInteractions()`. SDK logging is off by default (`none`, value 0), so start every session with this console snippet [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-debugging.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html) [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html):
 
 ```js
 SalesforceInteractions.setLoggingLevel('debug');
@@ -124,6 +124,7 @@ if (initialViewSuppressed) { initialViewSuppressed = false; SalesforceInteractio
 - **Cause:** `cookieDomain` defaults to the current site's domain [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html), and `setCookieDomain()` after init has no effect until `reinit()` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
 - **Confirm:** `SalesforceInteractions.getCookieDomain()` and `getAnonymousId()` differ between subdomains.
 - **Fix:** Use `init({ cookieDomain: '<REGISTRABLE_DOMAIN>', ... })` on every subdomain [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
+- **Warning (inference from the documented cookie name `__sfid_${domainHash}_`):** the cookie name is derived from the domain, so changing `cookieDomain` on a live site makes returning visitors start with a new anonymous ID: new Individuals, history detached from the old ones, and more profile credits used. Set `cookieDomain` before launch; on a live site, plan the change and re-test with a returning browser.
 
 ## Symptoms: Page types, WPM, and publishing
 

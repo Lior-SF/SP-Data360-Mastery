@@ -116,6 +116,7 @@ Each fact is detailed and cited in the linked reference.
   - `Advanced Setup`
 - Permissions:
   - `Personalization Admin` and `Personalization User` are the two standard permission sets. `Personalization User` has only Read on engagement signals, attribution models and batch decisions (UNVERIFIED whether the system permission `Personalization Intelligence User`, which both sets include, still allows creating custom attribution).
+  - `Use Case Setup` also requires the `Personalization Intelligence Admin` permission set, and Data 360 must be installed first with enhanced data space security on.
   - Setup also requires adding `Access Personalization Platform` to the `Data Cloud Salesforce Connector` permission set.
   - Dashboards need `Personalization Intelligence User`.
 - The billable unit is the personalization decision. License credit allowances and attribution-model quotas are in the reference. The Personalization Card covers SP inside Salesforce apps; web, mobile apps and other channels outside Salesforce clouds need the full Personalization License.
@@ -183,7 +184,7 @@ Each fact is detailed and cited in the linked reference.
   - Details are in the WPM reference and [troubleshooting.md](references/troubleshooting.md).
 - **Experience templates:** since release 262 they are built in the app, not in the sitemap.
 - **Campaigns:** personalization campaigns support Dynamic Content schemas on the web channel only.
-- **Experiments:** Bayesian, with at least 1,000 participants per cohort (check the Experiment Summary participant totals). The first cohort is the control, and settings are largely locked after `Start` (the docs conflict on which; see [wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md) §9). `Winner Found` (95% range entirely above control) is a recommendation; roll out manually, or automate through the Experiment Connect API.
+- **Experiments:** Bayesian, with at least 1,000 participants per cohort (check the Experiment Summary participant totals). The first cohort is the control unless you choose not to configure a control cohort (the point's existing decisions then act as the baseline; [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_exp_considerations.htm&release=264.0.0&type=5)), and settings are largely locked after `Start` (the docs conflict on which; see [wpm-experiences-campaigns.md](references/wpm-experiences-campaigns.md) §9). `Winner Found` (95% range entirely above control) is a recommendation; roll out manually, or automate through the Experiment Connect API.
 
 ### Insights — [calculated-insights.md](references/calculated-insights.md)
 
