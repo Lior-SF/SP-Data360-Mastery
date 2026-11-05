@@ -124,7 +124,7 @@ if (initialViewSuppressed) { initialViewSuppressed = false; SalesforceInteractio
 - **Cause:** `cookieDomain` defaults to the current site's domain [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html), and `setCookieDomain()` after init has no effect until `reinit()` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
 - **Confirm:** `SalesforceInteractions.getCookieDomain()` and `getAnonymousId()` differ between subdomains.
 - **Fix:** Use `init({ cookieDomain: '<REGISTRABLE_DOMAIN>', ... })` on every subdomain [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
-- **Warning (inference from the documented cookie name `__sfid_${domainHash}_`):** the cookie name is derived from the domain, so changing `cookieDomain` on a live site makes returning visitors start with a new anonymous ID: new Individuals, history detached from the old ones, and more profile credits used. Set `cookieDomain` before launch; on a live site, plan the change and re-test with a returning browser.
+- **Warning (inference from the documented cookie name `__sfid_${domainHash}_`):** the cookie name is derived from the domain, so changing `cookieDomain` on a live site makes returning visitors start with a new anonymous ID: so they appear as new anonymous profiles, unlinked from their earlier anonymous history. Set `cookieDomain` before launch; on a live site, plan the change and re-test with a returning browser.
 
 ## Symptoms: Page types, WPM, and publishing
 

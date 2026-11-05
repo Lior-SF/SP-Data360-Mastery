@@ -174,7 +174,7 @@ Documented APIs only; comments marked (inference) are design choices. Replace ev
             if (lineItem) SI.sendEvent({ interaction: { name: CartInteractionName.AddToCart, lineItem } });
           }),
           listener("click", "<SIGN_OUT_SELECTOR>", () => {   // shared devices: drop stored identities, then new anonymous ID
-            SI.clearPersistedIdentities();                    // documented on the Integrations page (no signature given; confirm it exists in your SDK version)
+            if (typeof SI.clearPersistedIdentities === "function") SI.clearPersistedIdentities();   // clears stored known identities (Integrations page, OnClearPersistedIdentities)
             SI.resetAnonymousId();
           }),
         ],
@@ -191,10 +191,10 @@ Documented APIs only; comments marked (inference) are design choices. Replace ev
         { name: "item_detail", isMatch: is.itemDetail,
           interaction: { name: CatalogObjectInteractionName.ViewCatalogObject, catalogObject: {
             type: "<ITEM_TYPE>",                              // e.g. Product, Article, Offer
-            id: itemId,                                       // one resolver for id and anchorId, defined above the sitemap: const itemId = resolvers.fromSelectorAttribute("<ITEM_ROOT_SELECTOR>", "<ITEM_ID_ATTR>"); or fromJsonLd(...) (spelling: see §5 note), fromMeta(...), fromWindow("<DATA_LAYER_PATH>")
+            id: resolvers.fromSelectorAttribute("<ITEM_ROOT_SELECTOR>", "<ITEM_ID_ATTR>"),   // or fromJsonLd(...) (spelling: see §5 note), fromMeta(...), fromWindow("<DATA_LAYER_PATH>")
           } },
           contextualAttributes: {                             // anchor for "similar / bought together" recommenders
-            anchorId: itemId,                                 // same resolver as catalogObject.id
+            anchorId: readItemId,                             // must return the same value as catalogObject.id
             anchorType: "<ITEM_DMO_API_NAME>",                // DMO API name, e.g. ssot__GoodsProduct__dlm
           } },
         { name: "category", isMatch: is.category,
@@ -213,7 +213,7 @@ Documented APIs only; comments marked (inference) are design choices. Replace ev
 - API basis: module before `init` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/initialize-einstein-personalization-module.html); `init` → `initSitemap` in `.then()`, `consents` as `Consent[]` or `Promise<Consent[]>`, `[]` = no tracking until `updateConsents()`, `cookieDomain` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-initialization.html); `personalization.dataspace` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/request-personalization-through-sitemap.html); sitemap keys, resolvers, `listener`, `onActionEvent` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-sitemap.html); `contextualAttributes` in `global` or `pageTypes`, value = string, function or Promise, `anchorType` = "The Data Model Object name associated with the anchor item" [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-dynamic-context-variables.html); `CustomEvents.OnEventSend` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-integration.html); `resetAnonymousId()` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-identity.html).
 - Contracts:
   - Page type `name` values are the WPM `Current Page Type` binding and the events' `sourcePageType` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-translating-sdk-events-to-web-connector-schemas.html). Don't rename them after go-live.
-  - **The stock schemas (`/250/`, `/260/`) contain no `userEngagement` event** (checked against the CDN files; `/260/` adds `catalogTime`, which time tracking needs). The `userEngagement` page views in this template, and any custom event or attribute, are dropped until you add them to the uploaded connector schema; **Update Schema** only adds [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-salesforce-interactions-sdk.html).
+  - **The stock schemas (`/250/`, `/260/`) contain no `userEngagement` event** (checked against the CDN files). So the `userEngagement` page views in this template, like any custom event or attribute, must be added to the uploaded connector schema; **Update Schema** only adds [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/integrate-salesforce-interactions-sdk.html).
   - `<ID_NAME>` / `<ID_TYPE>` must match the real-time identity resolution match rule [src](https://help.salesforce.com/s/articleView?id=mktg.persnl_setup_real_time_identity_resolution_for_einstein_personalization.htm&release=264.0.0&type=5).
 - Placement: the starter declares no content zones. Ask the site team for empty, stable `#id` placeholders and target them in WPM with `Replace an Element`. To use zones instead, add `contentZones: [{ name, selector }]` to a page type and use `Replace a Content Zone` [src](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/set-up-content-zones.html). Never both for the same slot.
 - Why identity is a separate call: the SDK's automatic anonymous `identity` event is sent only when the first action event after an anonymous-ID change carries no `user.attributes.eventType` [src](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-user-data.html). Putting `partyIdentification` on the page interaction (for example via `onActionEvent`) suppresses it on a new device.

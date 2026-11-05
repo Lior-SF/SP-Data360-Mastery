@@ -219,7 +219,7 @@ SUM (AttributedOrdersCount__c) as orders,
 SUM(AttributedOrdersCount__c) / NULLIF(SUM(AttributedViewsCount__c), 0)*100 as orderConversionRate,
 SUM (AttributedRevenue__c) as revenue
 FROM scm_PersonalizationPointViewAttribution__dlm
-WHERE  AttributionDate__c >= DATE '2024-01-01' AND AttributionDate__c <= DATE '2024-04-01'   /* the doc sample writes date('...'); DATE '...' is the Data 360 SQL form */
+WHERE  AttributionDate__c >= date('2024-01-01') AND AttributionDate__c <= date('2024-04-01')
 GROUP BY 1,2,3,4
 ORDER BY AttributionDate__c ASC;
 ```

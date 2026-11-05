@@ -4,15 +4,22 @@ Notable changes to this skill. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+Every change below was checked against the release 264 docs or the official web connector schema files.
+
+### Added
+
+- `calculated-insights.md`: streaming insight limits from the Data 360 limits page.
+- `decisioning.md`: the SDK doesn't set `locale` automatically.
+
 ### Fixed
 
 - Starter sitemap and Web SDK reference now send `IDName` (defined as required in the official `/250/` and `/260/` web connector schemas) instead of `IDNameWeb`.
 - Implementation playbook: identity resolution and Use Case Setup now come after the data streams and DLO→DMO mappings they depend on; added the Basic Settings Unified Individual step.
-- `headless-decisions.md`: the GET-to-PUT converter strips the read-only `experiments` array; added guards for points not created in the Personalization app and for running experiments.
+- `headless-decisions.md`: added a guard against PUT on campaign-created points and on points created from Marketing Cloud Next emails or landing pages.
 - `troubleshooting.md`: warning that changing `cookieDomain` on a live site resets returning visitors' anonymous IDs; console probes should use `window.getSalesforceInteractions()`.
-- Sitemap template: sign-out also calls `clearPersistedIdentities()`, `anchorId` reuses the item ID resolver, and the stock schemas' lack of `userEngagement` is stated.
+- Sitemap template: sign-out also calls `clearPersistedIdentities()`; `anchorId` is noted as needing the same value as `catalogObject.id`; and the stock schemas' lack of `userEngagement` is stated.
 - Removed `UNVERIFIED` where the docs answer it (real-time insight related-DMO cap is org-wide, time tracking is release 262, HTTP 429 throttling, Query Editor permission set label); added qualifiers for Exact Normalized in real time, the once-a-day ruleset limit and no-control-cohort experiments.
-- Corrected citations and SQL: default of 12 recommendations, `std__` vs `ssot__` foreign-key caveat, `DATE '…'`, `event_day` alias, Q10b labelled as source records.
+- Corrected citations and SQL: default of 12 recommendations, `std__` vs `ssot__` foreign-key caveat, `event_day` alias, Q10b labelled as source records.
 - `SKILL.md`: `Personalization Intelligence Admin` and enhanced data space security prerequisites.
 
 ## [1.11.1] - 2026-11-02

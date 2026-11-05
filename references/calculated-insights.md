@@ -118,7 +118,10 @@ ON
 | Execution time | 2 hours |
 | Manual runs per CI per 24 hours | 30 |
 | Real-time insights / fields (incl. graph key) / related DMOs | 20 / 15 / 10 |
+| Streaming insights / dimensions (window start and end included) / measures | 20 / 10 / 5 |
+| Streaming insight aggregation window | 1 minute to 24 hours |
 
+- Streaming insights: measures use `Count` and `Sum` only; the primary DMO must be an Engagement DMO from a streaming source (Web SDK, Mobile SDK, Marketing Cloud Personalization, Ingestion API streaming or batch, Amazon Kinesis, Apache Kafka, CRM Streaming); joins must be inner joins to Engagement DMOs, or to the Individual DMO's unified objects (Unified Individual, Individual Link, Contact Point); they aren't available in segmentation or activation [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5). The legacy Customer Data Platform limits page lists 5 streaming insights instead of 20, so check which license the org has.
 - Real-time insight related DMOs must have a many-to-one relationship, directly, with an engagement DMO in the real-time graph; the 10 related-DMO cap is org-wide: the limits page says "The maximum is for all active real-time insights across all data spaces" [src](https://help.salesforce.com/s/articleView?id=data.c360_a_limits_and_guidelines.htm&release=264.0.0&type=5).
 - Each real-time insight has a companion batch CI. Whether it counts against the 300 isn't stated (`UNVERIFIED`); check before planning near the cap.
 - **Cost:** a batch CI bills on the records in all underlying objects each run and nothing when the objects haven't changed. Real-time insights bill under the real-time pipeline or sub-second real-time events; streaming insights under streaming pipeline usage. To lower cost: run less often, set an end date, and turn off history tracking [src](https://help.salesforce.com/s/articleView?id=data.c360_a_billing_considerations_for_insights.htm&release=264.0.0&type=5).
